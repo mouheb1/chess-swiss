@@ -1,0 +1,17 @@
+# Local check of the production image. Dokploy builds from the Dockerfile
+# directly, so this file is a convenience for running the same image locally.
+services:
+  chess-swiss:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chess-swiss
+    restart: unless-stopped
+    ports:
+      - "9010:9010"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9010/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
