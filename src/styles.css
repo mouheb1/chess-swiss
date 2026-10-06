@@ -786,7 +786,7 @@ table.sticky-cols .sticky-2 {
   }
   table.pairings tr {
     display: grid;
-    grid-template-columns: 2.2rem 1fr auto;
+    grid-template-columns: 2.8rem 1fr auto;
     grid-template-areas:
       'bd wname wpts'
       'bd bname bpts'
@@ -804,8 +804,18 @@ table.sticky-cols .sticky-2 {
     align-self: start;
     text-align: left;
     font-weight: 800;
+    font-size: 1.15rem;
+    line-height: 1.1;
     color: var(--muted);
-    padding-top: 0.2rem;
+    padding-top: 0.1rem;
+  }
+  table.pairings .bd::before {
+    content: 'Table';
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
   table.pairings tr.pending .bd {
     color: var(--accent);

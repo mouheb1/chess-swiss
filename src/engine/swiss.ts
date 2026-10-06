@@ -190,9 +190,11 @@ export function pairSwiss(t: Tournament, roundNumber: number, halfByes: string[]
     if (!found) continue;
 
     // Board order first, then colors, so round-1 colors alternate down the boards.
+    // Top tables: higher score in the pair, then higher combined score, then best-ranked player.
     const ordered = [...found.pairs].sort(
       ([a1, b1], [a2, b2]) =>
         Math.max(a2.score, b2.score) - Math.max(a1.score, b1.score) ||
+        a2.score + b2.score - (a1.score + b1.score) ||
         Math.min(a1.rank, b1.rank) - Math.min(a2.rank, b2.rank),
     );
     const pairings: Pairing[] = ordered.map(([a, b], i) => {

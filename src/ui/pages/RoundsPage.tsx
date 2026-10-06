@@ -94,7 +94,7 @@ export default function RoundsPage() {
             <table className="data pairings">
               <thead>
                 <tr>
-                  <th className="num">Bd</th>
+                  <th className="num">Table</th>
                   <th className="num">Pts</th>
                   <th>White</th>
                   <th className="result-col">Result</th>

@@ -80,6 +80,20 @@ describe('swiss pairing — simulation', () => {
         expect([...seen.values()].every((c) => c === 1)).toBe(true);
 
         const before = summarize(t, r - 1);
+
+        // Top tables first: higher score in the pair, then higher combined score.
+        const keys = res.pairings
+          .filter((p) => p.black)
+          .map((p) => {
+            const a = before.get(p.white)!.points;
+            const b = before.get(p.black!)!.points;
+            return [Math.max(a, b), a + b];
+          });
+        for (let i = 1; i < keys.length; i++) {
+          const ok = keys[i][0] < keys[i - 1][0] || (keys[i][0] === keys[i - 1][0] && keys[i][1] <= keys[i - 1][1]);
+          expect(ok, `round ${r} table ${i + 1} order`).toBe(true);
+        }
+
         for (const p of res.pairings) {
           const recs = before.get(p.white)!.records;
           if (p.black) {
@@ -145,6 +159,38 @@ describe('swiss pairing — simulation', () => {
     const res = pairSwiss(t, 1, []);
     if (!res.ok) throw new Error(res.error);
     expect(res.pairings.map((p) => p.white)).toEqual(['p1', 'p6', 'p3', 'p8']);
+  });
+
+  it('orders tables by top score, then combined score, then rank', () => {
+    const t = makeTournament(8);
+    // After round 1: p1, p2, p3 win; p4–p5 draw; p6, p7, p8 lose.
+    t.rounds = [
+      {
+        number: 1,
+        halfByes: [],
+        pairings: [
+          { board: 1, white: 'p1', black: 'p5', result: '1-0' },
+          { board: 2, white: 'p6', black: 'p2', result: '0-1' },
+          { board: 3, white: 'p3', black: 'p7', result: '1-0' },
+          { board: 4, white: 'p8', black: 'p4', result: '½-½' },
+        ],
+      },
+    ];
+    const res = pairSwiss(t, 2, []);
+    if (!res.ok) throw new Error(res.error);
+    const scores = new Map([['p1', 1], ['p2', 1], ['p3', 1], ['p4', 0.5], ['p5', 0.5], ['p6', 0], ['p7', 0], ['p8', 0]]);
+    const keys = res.pairings.map((p) => {
+      const a = scores.get(p.white)!;
+      const b = scores.get(p.black!)!;
+      return [Math.max(a, b), a + b];
+    });
+    for (let i = 1; i < keys.length; i++) {
+      const [top, sum] = keys[i];
+      const [prevTop, prevSum] = keys[i - 1];
+      expect(top < prevTop || (top === prevTop && sum <= prevSum)).toBe(true);
+    }
+    // The leader always sits on table 1.
+    expect([res.pairings[0].white, res.pairings[0].black]).toContain('p1');
   });
 
   it('excludes half-bye players and gives bye to lowest', () => {
