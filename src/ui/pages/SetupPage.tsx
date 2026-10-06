@@ -25,14 +25,14 @@ export default function SetupPage() {
     const blob = new Blob([exportJson(t)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${t.name.replace(/[^\w-]+/g, '_') || 'tournament'}.json`;
+    a.download = `${t.name.replace(/[^\w-]+/g, '_') || 'tournoi'}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
 
   const onImport = async (file: File) => {
     const err = importJson(await file.text());
-    setMsg(err ? { kind: 'error', text: err } : { kind: 'ok', text: `Imported “${file.name}”.` });
+    setMsg(err ? { kind: 'error', text: err } : { kind: 'ok', text: `Fichier « ${file.name} » importé.` });
   };
 
   const swissRoundWarning = t.system === 'swiss' && t.players.length > 0 && t.totalRounds >= t.players.length - 2;
@@ -40,33 +40,33 @@ export default function SetupPage() {
   return (
     <div className="stack">
       <section className="card">
-        <h2>Tournament</h2>
+        <h2>Tournoi</h2>
         <div className="grid-form">
           <label>
-            Name
+            Nom
             <input value={t.name} onChange={(e) => updateInfo({ name: e.target.value })} />
           </label>
           <label>
-            Location
+            Lieu
             <input value={t.location} onChange={(e) => updateInfo({ location: e.target.value })} />
           </label>
           <label>
-            Chief arbiter
+            Arbitre principal
             <input value={t.arbiter} onChange={(e) => updateInfo({ arbiter: e.target.value })} />
           </label>
           <label>
-            Start date
+            Date de début
             <input type="date" value={t.startDate} onChange={(e) => updateInfo({ startDate: e.target.value })} />
           </label>
           <label>
-            System
+            Système
             <select value={t.system} disabled={started} onChange={(e) => setSystem(e.target.value as typeof t.system)}>
-              <option value="swiss">Swiss (simplified Dutch)</option>
-              <option value="roundrobin">Round robin (Berger)</option>
+              <option value="swiss">Suisse (hollandais simplifié)</option>
+              <option value="roundrobin">Toutes rondes (Berger)</option>
             </select>
           </label>
           <label>
-            Rounds
+            Nombre de rondes
             <input
               type="number"
               min={Math.max(1, t.rounds.length)}
@@ -78,7 +78,7 @@ export default function SetupPage() {
           </label>
           {t.system === 'swiss' && (
             <label>
-              Pairing bye scores
+              Points de l'exempt
               <select value={t.byePoints} onChange={(e) => updateInfo({ byePoints: Number(e.target.value) as 1 | 0.5 })}>
                 <option value={1}>1 point</option>
                 <option value={0.5}>½ point</option>
@@ -86,25 +86,25 @@ export default function SetupPage() {
             </label>
           )}
         </div>
-        {t.system === 'roundrobin' && <p className="hint">Round robin: rounds are set from the number of players.</p>}
+        {t.system === 'roundrobin' && <p className="hint">Toutes rondes : le nombre de rondes dépend du nombre de joueurs.</p>}
         {swissRoundWarning && (
           <p className="banner warn">
-            {t.totalRounds} rounds with {t.players.length} players is close to a round robin — the last rounds may be impossible
-            to pair without rematches. Consider fewer rounds or the round-robin system.
+            {t.totalRounds} rondes pour {t.players.length} joueurs, c'est presque un toutes rondes — les dernières rondes risquent
+            d'être impossibles à apparier sans revanche. Réduisez le nombre de rondes ou passez en toutes rondes.
           </p>
         )}
       </section>
 
       <section className="card">
-        <h2>Tiebreak order</h2>
+        <h2>Ordre des départages</h2>
         <ol className="tb-list">
           {t.tiebreaks.map((id, i) => (
             <li key={id}>
               <span>{TIEBREAK_LABELS[id]}</span>
               <span className="row-actions">
-                <button className="ghost" onClick={() => moveTb(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
-                <button className="ghost" onClick={() => moveTb(i, 1)} disabled={i === t.tiebreaks.length - 1} aria-label="Move down">↓</button>
-                <button className="ghost" onClick={() => updateInfo({ tiebreaks: t.tiebreaks.filter((x) => x !== id) })} aria-label="Remove">✕</button>
+                <button className="ghost" onClick={() => moveTb(i, -1)} disabled={i === 0} aria-label="Monter">↑</button>
+                <button className="ghost" onClick={() => moveTb(i, 1)} disabled={i === t.tiebreaks.length - 1} aria-label="Descendre">↓</button>
+                <button className="ghost" onClick={() => updateInfo({ tiebreaks: t.tiebreaks.filter((x) => x !== id) })} aria-label="Retirer">✕</button>
               </span>
             </li>
           ))}
@@ -119,11 +119,11 @@ export default function SetupPage() {
       </section>
 
       <section className="card">
-        <h2>Data</h2>
-        <p className="hint">Everything is saved in this browser automatically. Export a backup file now and then.</p>
+        <h2>Données</h2>
+        <p className="hint">Tout est enregistré automatiquement dans ce navigateur. Exportez une sauvegarde de temps en temps.</p>
         <div className="row">
-          <button onClick={download}>Export JSON</button>
-          <button className="secondary" onClick={() => fileRef.current?.click()}>Import JSON</button>
+          <button onClick={download}>Exporter (JSON)</button>
+          <button className="secondary" onClick={() => fileRef.current?.click()}>Importer (JSON)</button>
           <input
             ref={fileRef}
             type="file"
@@ -139,20 +139,20 @@ export default function SetupPage() {
         {msg && <p className={`banner ${msg.kind === 'error' ? 'error' : 'ok'}`}>{msg.text}</p>}
 
         <div className="danger-zone">
-          <h3>Reset</h3>
-          <p className="hint">Deletes the tournament, all players and rounds from this browser. Type RESET to confirm.</p>
+          <h3>Réinitialiser</h3>
+          <p className="hint">Supprime le tournoi, tous les joueurs et toutes les rondes de ce navigateur. Tapez EFFACER pour confirmer.</p>
           <div className="row">
-            <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="RESET" aria-label="Type RESET to confirm" />
+            <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="EFFACER" aria-label="Tapez EFFACER pour confirmer" />
             <button
               className="danger"
-              disabled={confirm !== 'RESET'}
+              disabled={confirm !== 'EFFACER'}
               onClick={() => {
                 reset();
                 setConfirm('');
-                setMsg({ kind: 'ok', text: 'Tournament reset.' });
+                setMsg({ kind: 'ok', text: 'Tournoi réinitialisé.' });
               }}
             >
-              Reset everything
+              Tout effacer
             </button>
           </div>
         </div>

@@ -11,17 +11,17 @@ const OUTCOME = (pts: number) => (pts === 1 ? '1' : pts === 0.5 ? '½' : '0');
 function swissCell(r: RoundRecord, rankOf: Map<string, number>): string {
   switch (r.kind) {
     case 'bye':
-      return `bye ${fmtPoints(r.points)}`;
+      return `exempt ${fmtPoints(r.points)}`;
     case 'halfbye':
-      return '½ bye';
+      return 'exempt ½';
     case 'absent':
       return '–';
     case 'pending':
-      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'w' : 'b'}`;
+      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'b' : 'n'}`;
     case 'forfeit':
-      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'w' : 'b'}${r.points === 1 ? '+' : '−'}`;
+      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'b' : 'n'}${r.points === 1 ? '+' : '−'}`;
     default:
-      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'w' : 'b'}${OUTCOME(r.points)}`;
+      return `${rankOf.get(r.opponent!) ?? '?'}${r.color === 'W' ? 'b' : 'n'}${OUTCOME(r.points)}`;
   }
 }
 
@@ -31,9 +31,9 @@ function SwissTable({ rows, rounds }: { rows: StandingRow[]; rounds: number }) {
     <table className="data crosstable sticky-cols">
       <thead>
         <tr>
-          <th className="num sticky-1">Rk</th>
-          <th className="sticky-2">Name</th>
-          <th className="num hide-sm">Rating</th>
+          <th className="num sticky-1">Cl.</th>
+          <th className="sticky-2">Nom</th>
+          <th className="num hide-sm">Elo</th>
           {Array.from({ length: rounds }, (_, i) => (
             <th key={i} className="center">
               R{i + 1}
@@ -67,8 +67,8 @@ function RoundRobinGrid({ rows }: { rows: StandingRow[] }) {
     <table className="data crosstable grid sticky-cols">
       <thead>
         <tr>
-          <th className="num sticky-1">Rk</th>
-          <th className="sticky-2">Name</th>
+          <th className="num sticky-1">Cl.</th>
+          <th className="sticky-2">Nom</th>
           {rows.map((_, i) => (
             <th key={i} className="center">
               {i + 1}
@@ -114,8 +114,8 @@ export default function CrosstablePage() {
   if (t.rounds.length === 0) {
     return (
       <section className="card">
-        <h2>Crosstable</h2>
-        <p className="empty">The crosstable appears once round 1 is paired.</p>
+        <h2>Grille américaine</h2>
+        <p className="empty">La grille apparaît dès que la ronde 1 est appariée.</p>
       </section>
     );
   }
@@ -124,19 +124,19 @@ export default function CrosstablePage() {
     <section className="card">
       <div className="card-head">
         <h2>
-          <span className="print-only">{t.name} — </span>Crosstable after round {upto}
+          <span className="print-only">{t.name} — </span>Grille après la ronde {upto}
         </h2>
         <div className="row no-print">
           <RoundSelect value={upto} max={t.rounds.length} onChange={setAfter} />
           <button className="secondary" onClick={() => window.print()}>
-            Print
+            Imprimer
           </button>
         </div>
       </div>
       <div className="table-wrap">
         {t.system === 'roundrobin' ? <RoundRobinGrid rows={rows} /> : <SwissTable rows={rows} rounds={upto} />}
       </div>
-      {t.system === 'swiss' && <p className="hint">Cell = opponent's rank, color (w/b), result. + / − = forfeit.</p>}
+      {t.system === 'swiss' && <p className="hint">Case = rang de l'adversaire, couleur (b = Blancs, n = Noirs), résultat. + / − = forfait.</p>}
     </section>
   );
 }

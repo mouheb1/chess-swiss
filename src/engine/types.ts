@@ -54,20 +54,20 @@ export interface Tournament {
 
 export const TIEBREAK_LABELS: Record<TiebreakId, string> = {
   buchholz: 'Buchholz',
-  buchholzCut1: 'Buchholz Cut-1',
+  buchholzCut1: 'Buchholz tronqué (-1)',
   sonnebornBerger: 'Sonneborn-Berger',
-  wins: 'Wins',
-  directEncounter: 'Direct encounter',
-  aro: 'Avg. rating of opponents',
+  wins: 'Nombre de victoires',
+  directEncounter: 'Confrontation directe',
+  aro: 'Elo moyen des adversaires',
 };
 
 export const TIEBREAK_SHORT: Record<TiebreakId, string> = {
   buchholz: 'BH',
   buchholzCut1: 'BH-C1',
   sonnebornBerger: 'SB',
-  wins: 'Wins',
-  directEncounter: 'DE',
-  aro: 'ARO',
+  wins: 'Vict.',
+  directEncounter: 'CD',
+  aro: 'EMA',
 };
 
 export const DEFAULT_TIEBREAKS: Record<System, TiebreakId[]> = {

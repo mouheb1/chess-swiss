@@ -6,9 +6,9 @@ import { fmtPoints, playerLabel } from '../format';
 
 const MAIN_RESULTS: Exclude<Result, null>[] = ['1-0', '½-½', '0-1'];
 const FORFEITS: { value: Exclude<Result, null>; label: string }[] = [
-  { value: '+/-', label: '+ / − (white wins by forfeit)' },
-  { value: '-/+', label: '− / + (black wins by forfeit)' },
-  { value: '0-0', label: '0 / 0 (both forfeit)' },
+  { value: '+/-', label: '+ / − (forfait, les Blancs gagnent)' },
+  { value: '-/+', label: '− / + (forfait, les Noirs gagnent)' },
+  { value: '0-0', label: '0 / 0 (double forfait)' },
 ];
 
 interface Seat {
@@ -30,9 +30,9 @@ function seatsByPlayer(round: Round, players: Map<string, Player>, byeLabel: str
   }
   for (const id of round.halfByes) {
     const p = players.get(id);
-    if (p) seats.push({ player: p, table: null, color: null, opponent: null, note: '½-point bye' });
+    if (p) seats.push({ player: p, table: null, color: null, opponent: null, note: 'exempt ½ point' });
   }
-  return seats.sort((a, b) => a.player.name.trim().localeCompare(b.player.name.trim(), undefined, { sensitivity: 'base' }));
+  return seats.sort((a, b) => a.player.name.trim().localeCompare(b.player.name.trim(), 'fr', { sensitivity: 'base' }));
 }
 
 function ByPlayerTable({ seats }: { seats: Seat[] }) {
@@ -40,10 +40,10 @@ function ByPlayerTable({ seats }: { seats: Seat[] }) {
     <table className="data by-player">
       <thead>
         <tr>
-          <th>Player</th>
+          <th>Joueur</th>
           <th className="num">Table</th>
-          <th>Color</th>
-          <th>Opponent</th>
+          <th>Couleur</th>
+          <th>Adversaire</th>
         </tr>
       </thead>
       <tbody>
@@ -53,7 +53,7 @@ function ByPlayerTable({ seats }: { seats: Seat[] }) {
             <td className="num table-no">{s.table ?? '–'}</td>
             <td className="nowrap">
               {s.color && <span className={s.color === 'W' ? 'side w' : 'side b'} aria-hidden />}
-              <span className="hide-sm">{s.color === 'W' ? 'White' : s.color === 'B' ? 'Black' : ''}</span>
+              <span className="hide-sm">{s.color === 'W' ? 'Blancs' : s.color === 'B' ? 'Noirs' : ''}</span>
             </td>
             <td>{s.opponent ? playerLabel(s.opponent) : <span className="muted">{s.note}</span>}</td>
           </tr>
@@ -101,12 +101,12 @@ export default function RoundsPage() {
                 R{r.number}
               </button>
             ))}
-            {last === 0 && <span className="hint">No rounds paired yet.</span>}
+            {last === 0 && <span className="hint">Aucune ronde appariée pour l'instant.</span>}
           </div>
           <div className="row round-actions">
             {last > 0 && (
               <button className="secondary" onClick={() => window.print()}>
-                Print
+                Imprimer
               </button>
             )}
             {last > 0 && (
@@ -121,50 +121,50 @@ export default function RoundsPage() {
                   setNotice(null);
                 }}
               >
-                {confirmDelete ? `Confirm: delete round ${last} and its results` : `Delete round ${last}`}
+                {confirmDelete ? `Confirmer : supprimer la ronde ${last} et ses résultats` : `Supprimer la ronde ${last}`}
               </button>
             )}
             <button className="hide-sm" onClick={pair} disabled={!canPairNext || t.players.length < 2}>
-              Pair round {last + 1}
+              Apparier la ronde {last + 1}
             </button>
           </div>
         </div>
         {notice && <p className={`banner ${notice.kind}`}>{notice.text}</p>}
-        {last >= t.totalRounds && <p className="hint">All {t.totalRounds} rounds paired. Add rounds in Setup if needed.</p>}
+        {last >= t.totalRounds && <p className="hint">Les {t.totalRounds} rondes sont appariées. Ajoutez des rondes dans Paramètres si besoin.</p>}
       </section>
 
       {round && (
         <section className="card">
           <div className="card-head">
             <h2>
-              <span className="print-only">{t.name} — </span>Round {round.number}
+              <span className="print-only">{t.name} — </span>Ronde {round.number}
             </h2>
             <div className="row">
               <span className="hint no-print">
-                {done}/{round.pairings.length} results
+                {done}/{round.pairings.length} résultats
               </span>
-              <div className="segmented no-print" role="tablist" aria-label="Pairings view">
+              <div className="segmented no-print" role="tablist" aria-label="Affichage des appariements">
                 <button role="tab" aria-selected={view === 'tables'} className={view === 'tables' ? 'active' : ''} onClick={() => setView('tables')}>
-                  By table
+                  Par table
                 </button>
                 <button role="tab" aria-selected={view === 'players'} className={view === 'players' ? 'active' : ''} onClick={() => setView('players')}>
-                  By player
+                  Par joueur
                 </button>
               </div>
             </div>
           </div>
           <div className="table-wrap">
             {view === 'players' ? (
-              <ByPlayerTable seats={seatsByPlayer(round, players, `bye (${fmtPoints(t.system === 'roundrobin' ? 0 : t.byePoints)})`)} />
+              <ByPlayerTable seats={seatsByPlayer(round, players, `exempt (${fmtPoints(t.system === 'roundrobin' ? 0 : t.byePoints)})`)} />
             ) : (
               <table className="data pairings">
                 <thead>
                   <tr>
                     <th className="num">Table</th>
                     <th className="num">Pts</th>
-                    <th>White</th>
-                    <th className="result-col">Result</th>
-                    <th>Black</th>
+                    <th>Blancs</th>
+                    <th className="result-col">Résultat</th>
+                    <th>Noirs</th>
                     <th className="num">Pts</th>
                   </tr>
                 </thead>
@@ -179,7 +179,7 @@ export default function RoundsPage() {
                       </td>
                       <td className="result-col">
                         {pr.black === null ? (
-                          <span className="bye-tag">bye {fmtPoints(t.system === 'roundrobin' ? 0 : t.byePoints)}</span>
+                          <span className="bye-tag">exempt {fmtPoints(t.system === 'roundrobin' ? 0 : t.byePoints)}</span>
                         ) : (
                           <>
                             <span className="print-only">{pr.result ?? ''}</span>
@@ -197,9 +197,9 @@ export default function RoundsPage() {
                                 className={pr.result && !MAIN_RESULTS.includes(pr.result) ? 'res-select active' : 'res-select'}
                                 value={pr.result && !MAIN_RESULTS.includes(pr.result) ? pr.result : ''}
                                 onChange={(e) => setResult(round.number, pr.board, (e.target.value || null) as Result)}
-                                aria-label="Forfeit result"
+                                aria-label="Résultat par forfait"
                               >
-                                <option value="">ff…</option>
+                                <option value="">forf.</option>
                                 {FORFEITS.map((f) => (
                                   <option key={f.value} value={f.value}>
                                     {f.label}
@@ -208,7 +208,7 @@ export default function RoundsPage() {
                               </select>
                               <button
                                 className="ghost small"
-                                title="Swap colors"
+                                title="Inverser les couleurs"
                                 style={{ visibility: pr.result === null ? 'visible' : 'hidden' }}
                                 onClick={() => swapColors(round.number, pr.board)}
                               >
@@ -230,15 +230,15 @@ export default function RoundsPage() {
             )}
           </div>
           {view === 'tables' && round.halfByes.length > 0 && (
-            <p className="hint">Half-point byes: {round.halfByes.map((id) => players.get(id)?.name).join(', ')}</p>
+            <p className="hint">Exempts ½ point : {round.halfByes.map((id) => players.get(id)?.name).join(', ')}</p>
           )}
         </section>
       )}
 
       {t.system === 'swiss' && last < t.totalRounds && (
         <section className="card no-print">
-          <h2>Half-point byes for round {last + 1}</h2>
-          <p className="hint">Players who asked to skip the round get ½ point and are not paired.</p>
+          <h2>Exempts ½ point pour la ronde {last + 1}</h2>
+          <p className="hint">Les joueurs qui demandent à ne pas jouer cette ronde reçoivent ½ point et ne sont pas appariés.</p>
           <div className="chips">
             {startingRank(t.players)
               .filter((p) => !p.withdrawn)
@@ -256,10 +256,10 @@ export default function RoundsPage() {
       {t.players.length >= 2 && last < t.totalRounds && (
         <div className="mobile-actionbar no-print">
           <span className="hint">
-            {round ? `Round ${last}: ${done}/${round.pairings.length} results` : `${t.players.length} players ready`}
+            {round ? `Ronde ${last} : ${done}/${round.pairings.length} résultats` : `${t.players.length} joueurs prêts`}
           </span>
           <button onClick={pair} disabled={!canPairNext}>
-            Pair round {last + 1}
+            Apparier la ronde {last + 1}
           </button>
         </div>
       )}

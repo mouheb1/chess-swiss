@@ -92,7 +92,7 @@ export const useTournament = create<State & Actions>()(
 
       addPlayers: (players) => {
         const t = get().tournament;
-        if (t.system === 'roundrobin' && t.rounds.length) return 'Round robin already started — players cannot be added.';
+        if (t.system === 'roundrobin' && t.rounds.length) return 'Le toutes rondes a commencé — impossible d\'ajouter des joueurs.';
         update(set, (t) => {
           const all = [...t.players, ...players.map((p) => ({ ...p, id: uid(), withdrawn: false }))];
           return { ...t, players: all, totalRounds: t.system === 'roundrobin' ? rrTotalRounds(all.length) : t.totalRounds };
@@ -122,13 +122,13 @@ export const useTournament = create<State & Actions>()(
       pairNextRound: () => {
         const t = get().tournament;
         const next = t.rounds.length + 1;
-        if (next > t.totalRounds) return { error: `All ${t.totalRounds} rounds are already paired.`, warning: null };
+        if (next > t.totalRounds) return { error: `Les ${t.totalRounds} rondes sont déjà appariées.`, warning: null };
         if (t.rounds.length && !isRoundComplete(t, t.rounds.length)) {
-          return { error: `Enter all results of round ${t.rounds.length} first.`, warning: null };
+          return { error: `Saisissez d'abord tous les résultats de la ronde ${t.rounds.length}.`, warning: null };
         }
 
         if (t.system === 'roundrobin') {
-          if (t.players.length < 2) return { error: 'Need at least 2 players.', warning: null };
+          if (t.players.length < 2) return { error: 'Il faut au moins 2 joueurs.', warning: null };
           const order = t.rrOrder.length ? t.rrOrder : startingRank(t.players).map((p) => p.id);
           const pairings = pairRoundRobin(order, next);
           update(set, (t) => ({ ...t, rrOrder: order, rounds: [...t.rounds, { number: next, pairings, halfByes: [] }] }));
@@ -140,9 +140,9 @@ export const useTournament = create<State & Actions>()(
         if (!res.ok) return { error: res.error, warning: null };
         update(set, (t) => ({ ...t, pendingHalfByes: [], rounds: [...t.rounds, { number: next, pairings: res.pairings, halfByes }] }));
         const warning = res.relaxedBye
-          ? 'The bye went to a player who already had a forfeit win — no other pairing was possible.'
+          ? 'L\'exempt a été attribué à un joueur ayant déjà gagné par forfait — aucun autre appariement n\'était possible.'
           : !res.strictColors
-            ? 'Color limits could not all be respected this round.'
+            ? 'Les règles de couleurs n\'ont pas toutes pu être respectées cette ronde.'
             : null;
         return { error: null, warning };
       },

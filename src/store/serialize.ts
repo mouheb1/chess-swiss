@@ -2,7 +2,7 @@ import { DEFAULT_TIEBREAKS, type Tournament } from '../engine/types';
 
 export function emptyTournament(): Tournament {
   return {
-    name: 'New tournament',
+    name: 'Nouveau tournoi',
     location: '',
     arbiter: '',
     startDate: new Date().toISOString().slice(0, 10),
@@ -27,10 +27,10 @@ export function parseTournamentJson(text: string): { ok: true; tournament: Tourn
   try {
     data = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'File is not valid JSON.' };
+    return { ok: false, error: 'Le fichier n\'est pas un JSON valide.' };
   }
   const t = (data as { tournament?: unknown })?.tournament ?? data;
-  if (!isTournament(t)) return { ok: false, error: 'File does not look like a Swiss Lite tournament.' };
+  if (!isTournament(t)) return { ok: false, error: 'Ce fichier ne ressemble pas à un tournoi Swiss Lite.' };
   return {
     ok: true,
     tournament: {

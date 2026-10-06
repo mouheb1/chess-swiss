@@ -60,23 +60,23 @@ export default function PlayersPage() {
     <div className="stack">
       {!locked && (
         <section className="card">
-          <h2>Add player</h2>
+          <h2>Ajouter un joueur</h2>
           <form className="add-player" onSubmit={submit}>
-            <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <input placeholder="Rating" inputMode="numeric" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} />
-            <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            <input placeholder="Fed" maxLength={3} value={form.fed} onChange={(e) => setForm({ ...form, fed: e.target.value })} />
+            <input placeholder="Nom" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <input placeholder="Elo" inputMode="numeric" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} />
+            <input placeholder="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <input placeholder="Féd." maxLength={3} value={form.fed} onChange={(e) => setForm({ ...form, fed: e.target.value })} />
             <input placeholder="Club" value={form.club} onChange={(e) => setForm({ ...form, club: e.target.value })} />
-            <button type="submit">Add</button>
+            <button type="submit">Ajouter</button>
           </form>
           <details className="bulk">
-            <summary>Paste a list</summary>
+            <summary>Coller une liste</summary>
             <p className="hint">
-              One player per line: <code>Name, Rating, Title, Fed, Club</code>. Only the name is required. For
-              “Last, First” names use <code>;</code> as separator, or paste straight from a spreadsheet.
+              Un joueur par ligne : <code>Nom, Elo, Titre, Féd., Club</code>. Seul le nom est obligatoire. Pour les noms
+              « Nom, Prénom », séparez avec <code>;</code> ou collez directement depuis un tableur.
             </p>
             <textarea rows={6} value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={'Magnus Carlsen, 2830, GM, NOR\nMartin, Alice; 1650'} />
-            <button className="secondary" onClick={importBulk}>Add {parseBulk(bulk).length || ''} players</button>
+            <button className="secondary" onClick={importBulk}>Ajouter {parseBulk(bulk).length || ''} joueurs</button>
           </details>
           {error && <p className="banner error">{error}</p>}
         </section>
@@ -84,21 +84,21 @@ export default function PlayersPage() {
 
       <section className="card">
         <div className="card-head">
-          <h2>Players ({t.players.length})</h2>
-          {started && <span className="hint">Paired players can't be deleted — withdraw them instead.</span>}
+          <h2>Joueurs ({t.players.length})</h2>
+          {started && <span className="hint">Les joueurs déjà appariés ne peuvent pas être supprimés — retirez-les du tournoi.</span>}
         </div>
         {players.length === 0 ? (
-          <p className="empty">No players yet.</p>
+          <p className="empty">Aucun joueur pour l'instant.</p>
         ) : (
           <div className="table-wrap">
             <table className="data players">
               <thead>
                 <tr>
                   <th className="num">#</th>
-                  <th>Name</th>
-                  <th className="num">Rating</th>
-                  <th>Title</th>
-                  <th>Fed</th>
+                  <th>Nom</th>
+                  <th className="num">Elo</th>
+                  <th>Titre</th>
+                  <th>Féd.</th>
                   <th>Club</th>
                   <th></th>
                 </tr>
@@ -108,33 +108,33 @@ export default function PlayersPage() {
                   <tr key={p.id} className={p.withdrawn ? 'player-row withdrawn' : 'player-row'}>
                     <td className="num pr-no">{i + 1}</td>
                     <td className="pr-name">
-                      <input className="cell" value={p.name} onChange={(e) => updatePlayer(p.id, { name: e.target.value })} aria-label="Name" />
+                      <input className="cell" value={p.name} onChange={(e) => updatePlayer(p.id, { name: e.target.value })} aria-label="Nom" />
                     </td>
                     <td className="num pr-rating">
                       <input
                         className="cell num"
-                        placeholder="Rating"
+                        placeholder="Elo"
                         inputMode="numeric"
                         value={p.rating || ''}
                         onChange={(e) => updatePlayer(p.id, { rating: Number(e.target.value) || 0 })}
-                        aria-label="Rating"
+                        aria-label="Elo"
                       />
                     </td>
                     <td className="pr-title">
-                      <input className="cell short" placeholder="Title" value={p.title ?? ''} onChange={(e) => updatePlayer(p.id, { title: e.target.value || undefined })} aria-label="Title" />
+                      <input className="cell short" placeholder="Titre" value={p.title ?? ''} onChange={(e) => updatePlayer(p.id, { title: e.target.value || undefined })} aria-label="Titre" />
                     </td>
                     <td className="pr-fed">
-                      <input className="cell short" placeholder="Fed" value={p.fed ?? ''} maxLength={3} onChange={(e) => updatePlayer(p.id, { fed: e.target.value.toUpperCase() || undefined })} aria-label="Federation" />
+                      <input className="cell short" placeholder="Féd." value={p.fed ?? ''} maxLength={3} onChange={(e) => updatePlayer(p.id, { fed: e.target.value.toUpperCase() || undefined })} aria-label="Fédération" />
                     </td>
                     <td className="pr-club">
                       <input className="cell" placeholder="Club" value={p.club ?? ''} onChange={(e) => updatePlayer(p.id, { club: e.target.value || undefined })} aria-label="Club" />
                     </td>
                     <td className="row-actions pr-actions">
                       <button className="ghost small" onClick={() => toggleWithdrawn(p.id)}>
-                        {p.withdrawn ? 'Reinstate' : 'Withdraw'}
+                        {p.withdrawn ? 'Réintégrer' : 'Retirer'}
                       </button>
                       {!started && (
-                        <button className="ghost small" onClick={() => removePlayer(p.id)} aria-label={`Delete ${p.name}`}>
+                        <button className="ghost small" onClick={() => removePlayer(p.id)} aria-label={`Supprimer ${p.name}`}>
                           ✕
                         </button>
                       )}

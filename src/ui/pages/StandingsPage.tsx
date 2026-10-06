@@ -7,7 +7,7 @@ import { fmtPoints, fmtTiebreak, playerLabel } from '../format';
 export function RoundSelect({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
   return (
     <label className="inline no-print">
-      After round
+      Après la ronde
       <select value={value} onChange={(e) => onChange(Number(e.target.value))}>
         {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
           <option key={n} value={n}>
@@ -28,8 +28,8 @@ export default function StandingsPage() {
   if (t.rounds.length === 0) {
     return (
       <section className="card">
-        <h2>Standings</h2>
-        <p className="empty">Standings appear once round 1 is paired.</p>
+        <h2>Classement</h2>
+        <p className="empty">Le classement apparaît dès que la ronde 1 est appariée.</p>
       </section>
     );
   }
@@ -38,12 +38,12 @@ export default function StandingsPage() {
     <section className="card">
       <div className="card-head">
         <h2>
-          <span className="print-only">{t.name} — </span>Standings after round {upto}
+          <span className="print-only">{t.name} — </span>Classement après la ronde {upto}
         </h2>
         <div className="row no-print">
           <RoundSelect value={upto} max={t.rounds.length} onChange={setAfter} />
           <button className="secondary" onClick={() => window.print()}>
-            Print
+            Imprimer
           </button>
         </div>
       </div>
@@ -51,11 +51,11 @@ export default function StandingsPage() {
         <table className="data standings sticky-cols">
           <thead>
             <tr>
-              <th className="num sticky-1">Rk</th>
-              <th className="num hide-sm">SNo</th>
-              <th className="sticky-2">Name</th>
-              <th className="hide-sm">Fed</th>
-              <th className="num hide-sm">Rating</th>
+              <th className="num sticky-1">Cl.</th>
+              <th className="num hide-sm">N°</th>
+              <th className="sticky-2">Nom</th>
+              <th className="hide-sm">Féd.</th>
+              <th className="num hide-sm">Elo</th>
               <th className="num">Pts</th>
               {t.tiebreaks.map((id) => (
                 <th key={id} className="num" title={TIEBREAK_LABELS[id]}>

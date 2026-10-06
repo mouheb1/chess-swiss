@@ -8,11 +8,11 @@ import SetupPage from './pages/SetupPage';
 import StandingsPage from './pages/StandingsPage';
 
 const TABS = [
-  { id: 'setup', label: 'Setup', Page: SetupPage, Icon: SetupIcon },
-  { id: 'players', label: 'Players', Page: PlayersPage, Icon: PlayersIcon },
-  { id: 'rounds', label: 'Rounds', Page: RoundsPage, Icon: RoundsIcon },
-  { id: 'standings', label: 'Standings', Page: StandingsPage, Icon: StandingsIcon },
-  { id: 'crosstable', label: 'Crosstable', Page: CrosstablePage, Icon: CrosstableIcon },
+  { id: 'setup', label: 'Paramètres', Page: SetupPage, Icon: SetupIcon },
+  { id: 'players', label: 'Joueurs', Page: PlayersPage, Icon: PlayersIcon },
+  { id: 'rounds', label: 'Rondes', Page: RoundsPage, Icon: RoundsIcon },
+  { id: 'standings', label: 'Classement', Page: StandingsPage, Icon: StandingsIcon },
+  { id: 'crosstable', label: 'Grille', Page: CrosstablePage, Icon: CrosstableIcon },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -54,7 +54,7 @@ export default function App() {
 
   const current = TABS.find((x) => x.id === tab)!;
   const { Page } = current;
-  const subtitle = `${t.system === 'swiss' ? 'Swiss' : 'Round robin'} · round ${t.rounds.length}/${t.totalRounds} · ${t.players.length} players`;
+  const subtitle = `${t.system === 'swiss' ? 'Suisse' : 'Toutes rondes'} · ronde ${t.rounds.length}/${t.totalRounds} · ${t.players.length} joueurs`;
 
   return (
     <div className="app">
@@ -83,7 +83,7 @@ export default function App() {
         <button
           className="icon-btn"
           onClick={() => setMenuOpen((o) => !o)}
-          aria-label="Open menu"
+          aria-label="Ouvrir le menu"
           aria-expanded={menuOpen}
         >
           <MenuIcon />
@@ -104,7 +104,7 @@ export default function App() {
             <span className="brand-mark" aria-hidden>♞</span>
             <span className="brand-name">Swiss Lite</span>
           </span>
-          <button className="icon-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu" tabIndex={menuOpen ? 0 : -1}>
+          <button className="icon-btn" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu" tabIndex={menuOpen ? 0 : -1}>
             <CloseIcon />
           </button>
         </div>
@@ -130,7 +130,7 @@ export default function App() {
 
       {storageFailed && (
         <div className="banner error no-print">
-          Your browser refused to save. Changes will be lost on refresh — export a backup from Setup.
+          Votre navigateur refuse d'enregistrer. Les modifications seront perdues au rechargement — exportez une sauvegarde depuis Paramètres.
         </div>
       )}
       <main className="page">

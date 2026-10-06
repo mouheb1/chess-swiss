@@ -210,7 +210,7 @@ function attempt(entrants: Entrant[], strict: boolean, strictBye: boolean) {
 
 export function pairSwiss(t: Tournament, roundNumber: number, halfByes: string[]): PairingOutcome {
   const entrants = buildEntrants(t, roundNumber, new Set(halfByes));
-  if (entrants.length < 2) return { ok: false, error: 'Need at least 2 active players to pair a round.' };
+  if (entrants.length < 2) return { ok: false, error: 'Il faut au moins 2 joueurs actifs pour apparier une ronde.' };
 
   // Passes from strictest to most relaxed; the last one lets a forfeit winner take the bye.
   const passes = [
@@ -241,6 +241,6 @@ export function pairSwiss(t: Tournament, roundNumber: number, halfByes: string[]
 
   return {
     ok: false,
-    error: 'No valid pairing exists (every option repeats a game or breaks the bye rule). Reduce rounds or check withdrawals.',
+    error: 'Aucun appariement valide (chaque option répète une partie ou enfreint la règle de l\'exempt). Réduisez le nombre de rondes ou vérifiez les retraits.',
   };
 }
