@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { computeStandings } from '../../engine/standings';
 import { TIEBREAK_LABELS, TIEBREAK_SHORT } from '../../engine/types';
-import { useTournament } from '../../store/useTournament';
+import { useCurrentTournament } from '../../store/useTournament';
 import { fmtPoints, fmtTiebreak, playerLabel } from '../format';
 
 export function RoundSelect({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
@@ -20,7 +20,7 @@ export function RoundSelect({ value, max, onChange }: { value: number; max: numb
 }
 
 export default function StandingsPage() {
-  const t = useTournament((s) => s.tournament);
+  const t = useCurrentTournament();
   const [after, setAfter] = useState<number | null>(null);
   const upto = after && after <= t.rounds.length ? after : t.rounds.length;
   const rows = useMemo(() => computeStandings(t, upto), [t, upto]);

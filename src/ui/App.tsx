@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useStorageStatus, useTournament } from '../store/useTournament';
+import { useSync } from '../store/sync';
+import { useCanEdit, useCurrentTournament, useStorageStatus } from '../store/useTournament';
+import { ArbiterControl, ChoiceDialog, SyncNotice } from './Arbiter';
 import { CloseIcon, CrosstableIcon, MenuIcon, PlayersIcon, RoundsIcon, SetupIcon, StandingsIcon } from './icons';
 import CrosstablePage from './pages/CrosstablePage';
 import PlayersPage from './pages/PlayersPage';
@@ -17,16 +19,22 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function tabFromHash(): TabId {
+function tabFromHash(): TabId | null {
   const h = window.location.hash.slice(1);
-  return (TABS.find((t) => t.id === h)?.id ?? 'setup') as TabId;
+  return (TABS.find((t) => t.id === h)?.id ?? null) as TabId | null;
 }
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>(tabFromHash);
+  const [hashTab, setTab] = useState<TabId | null>(tabFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
-  const t = useTournament((s) => s.tournament);
+  const t = useCurrentTournament();
+  const canEdit = useCanEdit();
+  const ready = useSync((s) => s.ready);
   const storageFailed = useStorageStatus((s) => s.failed);
+
+  // Viewers don't get the settings page; they land on the pairings.
+  const tabs = canEdit ? TABS : TABS.filter((x) => x.id !== 'setup');
+  const tab: TabId = hashTab && tabs.some((x) => x.id === hashTab) ? hashTab : canEdit ? 'setup' : 'rounds';
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
@@ -52,7 +60,7 @@ export default function App() {
     };
   }, [menuOpen]);
 
-  const current = TABS.find((x) => x.id === tab)!;
+  const current = tabs.find((x) => x.id === tab)!;
   const { Page } = current;
   const subtitle = `${t.system === 'swiss' ? 'Suisse' : 'Toutes rondes'} · ronde ${t.rounds.length}/${t.totalRounds} · ${t.players.length} joueurs`;
 
@@ -69,8 +77,9 @@ export default function App() {
             </div>
           </div>
         </div>
+        <ArbiterControl />
         <nav className="tabs">
-          {TABS.map((x) => (
+          {tabs.map((x) => (
             <a key={x.id} href={`#${x.id}`} className={x.id === tab ? 'tab active' : 'tab'}>
               {x.label}
             </a>
@@ -109,7 +118,7 @@ export default function App() {
           </button>
         </div>
         <nav className="drawer-nav">
-          {TABS.map(({ id, label, Icon }) => (
+          {tabs.map(({ id, label, Icon }) => (
             <a
               key={id}
               href={`#${id}`}
@@ -125,6 +134,7 @@ export default function App() {
         <div className="drawer-foot">
           <div className="drawer-name">{t.name}</div>
           <div className="hint">{subtitle}</div>
+          <ArbiterControl />
         </div>
       </aside>
 
@@ -133,9 +143,9 @@ export default function App() {
           Votre navigateur refuse d'enregistrer. Les modifications seront perdues au rechargement — exportez une sauvegarde depuis Paramètres.
         </div>
       )}
-      <main className="page">
-        <Page />
-      </main>
+      <SyncNotice />
+      <ChoiceDialog />
+      <main className="page">{ready ? <Page /> : <p className="empty">Chargement…</p>}</main>
     </div>
   );
 }

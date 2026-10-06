@@ -11,13 +11,25 @@ COPY . .
 
 RUN yarn build
 
-# Serve stage
-FROM nginx:alpine AS runner
+# Serve stage: a small Node server serves the app and stores the shared tournament.
+FROM node:22-alpine AS runner
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist ./dist
+COPY server/server.mjs ./server/server.mjs
+
+# Mount a persistent volume here, or the tournament is lost on every redeploy.
+RUN mkdir -p /app/data
+VOLUME /app/data
+
+ENV NODE_ENV=production \
+    PORT=9010 \
+    DATA_DIR=/app/data
 
 EXPOSE 9010
 
-CMD ["nginx", "-g", "daemon off;"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:9010/health || exit 1
+
+CMD ["node", "server/server.mjs"]

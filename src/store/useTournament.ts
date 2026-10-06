@@ -59,22 +59,36 @@ interface Actions {
   swapColors: (round: number, board: number) => void;
   deleteLastRound: () => void;
   importJson: (text: string) => string | null;
+  /** Clears rounds and results but keeps players and settings. */
+  resetRounds: () => void;
   reset: () => void;
 }
 
+/**
+ * local   — no server (yarn dev, offline): full editing, browser storage only.
+ * viewer  — shared server, read-only: shows `shared`, never touches the persisted copy.
+ * arbiter — shared server, PIN entered: edits the persisted copy, which syncs to the server.
+ */
+export type Mode = 'local' | 'viewer' | 'arbiter';
+
 interface State {
   tournament: Tournament;
+  mode: Mode;
+  shared: Tournament | null;
 }
 
 const uid = () => crypto.randomUUID();
 
+// Viewers can't change anything, whatever the UI shows.
 const update = (set: (fn: (s: State) => Partial<State>) => void, fn: (t: Tournament) => Tournament) =>
-  set((s) => ({ tournament: fn(s.tournament) }));
+  set((s) => (s.mode === 'viewer' ? {} : { tournament: fn(s.tournament) }));
 
 export const useTournament = create<State & Actions>()(
   persist(
     (set, get) => ({
       tournament: emptyTournament(),
+      mode: 'local',
+      shared: null,
 
       updateInfo: (patch) => update(set, (t) => ({ ...t, ...patch })),
 
@@ -91,6 +105,7 @@ export const useTournament = create<State & Actions>()(
         }),
 
       addPlayers: (players) => {
+        if (get().mode === 'viewer') return null;
         const t = get().tournament;
         if (t.system === 'roundrobin' && t.rounds.length) return 'Le toutes rondes a commencé — impossible d\'ajouter des joueurs.';
         update(set, (t) => {
@@ -120,6 +135,7 @@ export const useTournament = create<State & Actions>()(
         })),
 
       pairNextRound: () => {
+        if (get().mode === 'viewer') return { error: null, warning: null };
         const t = get().tournament;
         const next = t.rounds.length + 1;
         if (next > t.totalRounds) return { error: `Les ${t.totalRounds} rondes sont déjà appariées.`, warning: null };
@@ -177,13 +193,24 @@ export const useTournament = create<State & Actions>()(
         }),
 
       importJson: (text) => {
+        if (get().mode === 'viewer') return null;
         const res = parseTournamentJson(text);
         if (!res.ok) return res.error;
         set({ tournament: res.tournament });
         return null;
       },
 
+      resetRounds: () =>
+        update(set, (t) => ({
+          ...t,
+          rounds: [],
+          pendingHalfByes: [],
+          rrOrder: [],
+          players: t.players.map((p) => ({ ...p, withdrawn: false })),
+        })),
+
       reset: () => {
+        if (get().mode === 'viewer') return;
         useTournament.persist.clearStorage();
         set({ tournament: emptyTournament() });
       },
@@ -197,3 +224,10 @@ export const useTournament = create<State & Actions>()(
     },
   ),
 );
+
+const EMPTY = emptyTournament();
+
+/** The tournament on screen: the shared copy for viewers, the editable copy otherwise. */
+export const useCurrentTournament = () => useTournament((s) => (s.mode === 'viewer' ? (s.shared ?? EMPTY) : s.tournament));
+
+export const useCanEdit = () => useTournament((s) => s.mode !== 'viewer');

@@ -1,16 +1,18 @@
 import { useRef, useState } from 'react';
 import { TIEBREAK_LABELS, type TiebreakId } from '../../engine/types';
-import { exportJson, useTournament } from '../../store/useTournament';
+import { exportJson, useCurrentTournament, useTournament } from '../../store/useTournament';
 
 const ALL_TIEBREAKS = Object.keys(TIEBREAK_LABELS) as TiebreakId[];
 
 export default function SetupPage() {
-  const t = useTournament((s) => s.tournament);
-  const { updateInfo, setSystem, importJson, reset } = useTournament.getState();
+  const t = useCurrentTournament();
+  const { updateInfo, setSystem, importJson, reset, resetRounds } = useTournament.getState();
+  const shared = useTournament((s) => s.mode === 'arbiter');
   const started = t.rounds.length > 0;
 
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [confirm, setConfirm] = useState('');
+  const [confirmRounds, setConfirmRounds] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const moveTb = (i: number, d: -1 | 1) => {
@@ -120,7 +122,11 @@ export default function SetupPage() {
 
       <section className="card">
         <h2>Données</h2>
-        <p className="hint">Tout est enregistré automatiquement dans ce navigateur. Exportez une sauvegarde de temps en temps.</p>
+        <p className="hint">
+          {shared
+            ? 'Tout est enregistré sur le serveur et visible par tous ceux qui ont le lien. Exportez une sauvegarde de temps en temps.'
+            : 'Tout est enregistré automatiquement dans ce navigateur. Exportez une sauvegarde de temps en temps.'}
+        </p>
         <div className="row">
           <button onClick={download}>Exporter (JSON)</button>
           <button className="secondary" onClick={() => fileRef.current?.click()}>Importer (JSON)</button>
@@ -139,8 +145,26 @@ export default function SetupPage() {
         {msg && <p className={`banner ${msg.kind === 'error' ? 'error' : 'ok'}`}>{msg.text}</p>}
 
         <div className="danger-zone">
-          <h3>Réinitialiser</h3>
-          <p className="hint">Supprime le tournoi, tous les joueurs et toutes les rondes de ce navigateur. Tapez EFFACER pour confirmer.</p>
+          <h3>Nouveau tournoi avec les mêmes joueurs</h3>
+          <p className="hint">Supprime toutes les rondes et tous les résultats. Les joueurs et les paramètres sont gardés.</p>
+          <div className="row">
+            <button
+              className={confirmRounds ? 'danger' : 'secondary'}
+              disabled={t.rounds.length === 0}
+              onBlur={() => setConfirmRounds(false)}
+              onClick={() => {
+                if (!confirmRounds) return setConfirmRounds(true);
+                resetRounds();
+                setConfirmRounds(false);
+                setMsg({ kind: 'ok', text: 'Rondes effacées, joueurs gardés.' });
+              }}
+            >
+              {confirmRounds ? `Confirmer : effacer les ${t.rounds.length} rondes` : 'Effacer les rondes (garder les joueurs)'}
+            </button>
+          </div>
+
+          <h3>Tout effacer</h3>
+          <p className="hint">Supprime le tournoi, tous les joueurs et toutes les rondes. Tapez EFFACER pour confirmer.</p>
           <div className="row">
             <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="EFFACER" aria-label="Tapez EFFACER pour confirmer" />
             <button

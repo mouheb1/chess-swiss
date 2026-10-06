@@ -20,10 +20,21 @@ yarn build    # static site in dist/
 
 `dist/` can be hosted on any static server. Data lives in the browser's localStorage, so export a JSON backup now and then.
 
-## Docker
+## Shared results (server)
+
+In production a small Node server (`server/server.mjs`, no dependencies) serves the app and keeps one shared
+tournament, so everyone who opens the URL sees the same pairings and standings. Viewers refresh every 10 s;
+the arbiter unlocks editing with a PIN.
+
+| Env | Default | |
+|---|---|---|
+| `ARBITER_PIN` | — | Required to edit. Without it the site is read-only for everyone. Use 6+ characters. |
+| `DATA_DIR` | `/app/data` | Where `tournament.json` is stored. Mount a persistent volume here. |
+| `PORT` | `9010` | |
 
 ```sh
-docker compose up --build   # http://localhost:9010, health check at /health
+yarn build && ARBITER_PIN=secret yarn start    # http://localhost:9010
+docker compose up --build                       # same, in Docker (PIN from $ARBITER_PIN)
 ```
 
-Production runs the same `Dockerfile` (nginx on port 9010) through Dokploy.
+Without the server (`yarn dev`, any static host) the app works offline in the browser, as before.

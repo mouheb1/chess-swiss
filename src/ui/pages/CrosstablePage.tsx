@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { RoundRecord } from '../../engine/scores';
 import { computeStandings, type StandingRow } from '../../engine/standings';
-import { useTournament } from '../../store/useTournament';
+import { useCurrentTournament } from '../../store/useTournament';
 import { fmtPoints, playerLabel } from '../format';
 import { RoundSelect } from './StandingsPage';
 
@@ -106,7 +106,7 @@ function RoundRobinGrid({ rows }: { rows: StandingRow[] }) {
 }
 
 export default function CrosstablePage() {
-  const t = useTournament((s) => s.tournament);
+  const t = useCurrentTournament();
   const [after, setAfter] = useState<number | null>(null);
   const upto = after && after <= t.rounds.length ? after : t.rounds.length;
   const rows = useMemo(() => computeStandings(t, upto), [t, upto]);

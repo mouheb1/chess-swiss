@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { isRoundComplete, startingRank, summarize } from '../../engine/scores';
 import type { Player, Result, Round } from '../../engine/types';
-import { useTournament } from '../../store/useTournament';
+import { useCanEdit, useCurrentTournament, useTournament } from '../../store/useTournament';
 import { fmtPoints, playerLabel } from '../format';
 
 const MAIN_RESULTS: Exclude<Result, null>[] = ['1-0', '½-½', '0-1'];
@@ -64,12 +64,13 @@ function ByPlayerTable({ seats }: { seats: Seat[] }) {
 }
 
 export default function RoundsPage() {
-  const t = useTournament((s) => s.tournament);
+  const t = useCurrentTournament();
   const { pairNextRound, setResult, swapColors, deleteLastRound, toggleHalfBye } = useTournament.getState();
   const [selected, setSelected] = useState<number | null>(null);
   const [notice, setNotice] = useState<{ kind: 'error' | 'warn'; text: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [view, setView] = useState<'tables' | 'players'>('tables');
+  const canEdit = useCanEdit();
 
   const last = t.rounds.length;
   const current = selected && selected <= last ? selected : last;
@@ -109,7 +110,7 @@ export default function RoundsPage() {
                 Imprimer
               </button>
             )}
-            {last > 0 && (
+            {canEdit && last > 0 && (
               <button
                 className={confirmDelete ? 'danger' : 'ghost'}
                 onBlur={() => setConfirmDelete(false)}
@@ -124,13 +125,15 @@ export default function RoundsPage() {
                 {confirmDelete ? `Confirmer : supprimer la ronde ${last} et ses résultats` : `Supprimer la ronde ${last}`}
               </button>
             )}
-            <button className="hide-sm" onClick={pair} disabled={!canPairNext || t.players.length < 2}>
-              Apparier la ronde {last + 1}
-            </button>
+            {canEdit && (
+              <button className="hide-sm" onClick={pair} disabled={!canPairNext || t.players.length < 2}>
+                Apparier la ronde {last + 1}
+              </button>
+            )}
           </div>
         </div>
         {notice && <p className={`banner ${notice.kind}`}>{notice.text}</p>}
-        {last >= t.totalRounds && <p className="hint">Les {t.totalRounds} rondes sont appariées. Ajoutez des rondes dans Paramètres si besoin.</p>}
+        {canEdit && last >= t.totalRounds && <p className="hint">Les {t.totalRounds} rondes sont appariées. Ajoutez des rondes dans Paramètres si besoin.</p>}
       </section>
 
       {round && (
@@ -180,6 +183,8 @@ export default function RoundsPage() {
                       <td className="result-col">
                         {pr.black === null ? (
                           <span className="bye-tag">exempt {fmtPoints(t.system === 'roundrobin' ? 0 : t.byePoints)}</span>
+                        ) : !canEdit ? (
+                          <span className="result-text">{pr.result ?? '–'}</span>
                         ) : (
                           <>
                             <span className="print-only">{pr.result ?? ''}</span>
@@ -235,7 +240,7 @@ export default function RoundsPage() {
         </section>
       )}
 
-      {t.system === 'swiss' && last < t.totalRounds && (
+      {canEdit && t.system === 'swiss' && last < t.totalRounds && (
         <section className="card no-print">
           <h2>Exempts ½ point pour la ronde {last + 1}</h2>
           <p className="hint">Les joueurs qui demandent à ne pas jouer cette ronde reçoivent ½ point et ne sont pas appariés.</p>
@@ -253,7 +258,7 @@ export default function RoundsPage() {
       )}
 
       {/* Mobile: the main action stays under the thumb. */}
-      {t.players.length >= 2 && last < t.totalRounds && (
+      {canEdit && t.players.length >= 2 && last < t.totalRounds && (
         <div className="mobile-actionbar no-print">
           <span className="hint">
             {round ? `Ronde ${last} : ${done}/${round.pairings.length} résultats` : `${t.players.length} joueurs prêts`}

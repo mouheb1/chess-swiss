@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { startingRank } from '../../engine/scores';
-import { useTournament, type NewPlayer } from '../../store/useTournament';
+import { useCanEdit, useCurrentTournament, useTournament, type NewPlayer } from '../../store/useTournament';
 
 const blank = { name: '', rating: '', title: '', fed: '', club: '' };
 
@@ -23,13 +23,14 @@ function parseBulk(text: string): NewPlayer[] {
 }
 
 export default function PlayersPage() {
-  const t = useTournament((s) => s.tournament);
+  const t = useCurrentTournament();
   const { addPlayers, updatePlayer, removePlayer, toggleWithdrawn } = useTournament.getState();
   const [form, setForm] = useState(blank);
   const [bulk, setBulk] = useState('');
   const [error, setError] = useState<string | null>(null);
   const started = t.rounds.length > 0;
-  const locked = t.system === 'roundrobin' && started;
+  const canEdit = useCanEdit();
+  const locked = !canEdit || (t.system === 'roundrobin' && started);
   const players = startingRank(t.players);
 
   const submit = (e: FormEvent) => {
@@ -85,7 +86,7 @@ export default function PlayersPage() {
       <section className="card">
         <div className="card-head">
           <h2>Joueurs ({t.players.length})</h2>
-          {started && <span className="hint">Les joueurs déjà appariés ne peuvent pas être supprimés — retirez-les du tournoi.</span>}
+          {started && canEdit && <span className="hint">Les joueurs déjà appariés ne peuvent pas être supprimés — retirez-les du tournoi.</span>}
         </div>
         {players.length === 0 ? (
           <p className="empty">Aucun joueur pour l'instant.</p>
@@ -107,38 +108,51 @@ export default function PlayersPage() {
                 {players.map((p, i) => (
                   <tr key={p.id} className={p.withdrawn ? 'player-row withdrawn' : 'player-row'}>
                     <td className="num pr-no">{i + 1}</td>
-                    <td className="pr-name">
-                      <input className="cell" value={p.name} onChange={(e) => updatePlayer(p.id, { name: e.target.value })} aria-label="Nom" />
-                    </td>
-                    <td className="num pr-rating">
-                      <input
-                        className="cell num"
-                        placeholder="Elo"
-                        inputMode="numeric"
-                        value={p.rating || ''}
-                        onChange={(e) => updatePlayer(p.id, { rating: Number(e.target.value) || 0 })}
-                        aria-label="Elo"
-                      />
-                    </td>
-                    <td className="pr-title">
-                      <input className="cell short" placeholder="Titre" value={p.title ?? ''} onChange={(e) => updatePlayer(p.id, { title: e.target.value || undefined })} aria-label="Titre" />
-                    </td>
-                    <td className="pr-fed">
-                      <input className="cell short" placeholder="Féd." value={p.fed ?? ''} maxLength={3} onChange={(e) => updatePlayer(p.id, { fed: e.target.value.toUpperCase() || undefined })} aria-label="Fédération" />
-                    </td>
-                    <td className="pr-club">
-                      <input className="cell" placeholder="Club" value={p.club ?? ''} onChange={(e) => updatePlayer(p.id, { club: e.target.value || undefined })} aria-label="Club" />
-                    </td>
-                    <td className="row-actions pr-actions">
-                      <button className="ghost small" onClick={() => toggleWithdrawn(p.id)}>
-                        {p.withdrawn ? 'Réintégrer' : 'Retirer'}
-                      </button>
-                      {!started && (
-                        <button className="ghost small" onClick={() => removePlayer(p.id)} aria-label={`Supprimer ${p.name}`}>
-                          ✕
-                        </button>
-                      )}
-                    </td>
+                    {!canEdit ? (
+                      <>
+                        <td className="pr-name strong">{p.title ? `${p.title} ${p.name}` : p.name}</td>
+                        <td className="num pr-rating">{p.rating || ''}</td>
+                        <td className="pr-title" />
+                        <td className="pr-fed">{p.fed ?? ''}</td>
+                        <td className="pr-club">{p.club ?? ''}</td>
+                        <td className="pr-actions muted">{p.withdrawn ? 'Retiré' : ''}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="pr-name">
+                          <input className="cell" value={p.name} onChange={(e) => updatePlayer(p.id, { name: e.target.value })} aria-label="Nom" />
+                        </td>
+                        <td className="num pr-rating">
+                          <input
+                            className="cell num"
+                            placeholder="Elo"
+                            inputMode="numeric"
+                            value={p.rating || ''}
+                            onChange={(e) => updatePlayer(p.id, { rating: Number(e.target.value) || 0 })}
+                            aria-label="Elo"
+                          />
+                        </td>
+                        <td className="pr-title">
+                          <input className="cell short" placeholder="Titre" value={p.title ?? ''} onChange={(e) => updatePlayer(p.id, { title: e.target.value || undefined })} aria-label="Titre" />
+                        </td>
+                        <td className="pr-fed">
+                          <input className="cell short" placeholder="Féd." value={p.fed ?? ''} maxLength={3} onChange={(e) => updatePlayer(p.id, { fed: e.target.value.toUpperCase() || undefined })} aria-label="Fédération" />
+                        </td>
+                        <td className="pr-club">
+                          <input className="cell" placeholder="Club" value={p.club ?? ''} onChange={(e) => updatePlayer(p.id, { club: e.target.value || undefined })} aria-label="Club" />
+                        </td>
+                        <td className="row-actions pr-actions">
+                          <button className="ghost small" onClick={() => toggleWithdrawn(p.id)}>
+                            {p.withdrawn ? 'Réintégrer' : 'Retirer'}
+                          </button>
+                          {!started && (
+                            <button className="ghost small" onClick={() => removePlayer(p.id)} aria-label={`Supprimer ${p.name}`}>
+                              ✕
+                            </button>
+                          )}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
