@@ -4,9 +4,9 @@ import type { Pairing, Tournament } from './types';
 /**
  * Simplified Dutch Swiss pairing.
  *
- * One recursive backtracker over the whole field (sorted by score, then starting rank):
- * the top unpaired player tries its natural S2 counterpart first, then the rest of its
- * score group, then lower groups. Hard constraints: no rematch, at most one pairing bye,
+ * Branch and bound over the whole field (sorted by score, then starting rank) for the
+ * pairing with the smallest squared score differences. Candidates are tried in Dutch
+ * order (S2 counterpart, rest of the score group, then lower groups), so ties keep it. Hard constraints: no rematch, at most one pairing bye,
  * no bye after a forfeit win. A first pass also treats absolute color limits as hard;
  * if that fails, a second pass relaxes them, and a last resort allows a forfeit winner the bye.
  */
@@ -123,35 +123,68 @@ interface Budget {
   limit: number;
 }
 
+/**
+ * Best pairing of the pool: the one with the smallest sum of squared score differences.
+ * Branch and bound over the Dutch candidate order, so the first solution found is the old
+ * greedy one and ties keep Dutch order. Pruned with a per-player lower bound; when the
+ * budget runs out the best pairing found so far is used.
+ */
 function search(pool: Entrant[], strict: boolean, budget: Budget): [Entrant, Entrant][] | null {
-  if (pool.length === 0) return [];
-  if (++budget.nodes > budget.limit) throw new SearchAborted();
-  const [top, ...rest] = pool;
-  for (const opp of candidateOrder(rest, top)) {
-    if (!compatible(top, opp, strict)) continue;
-    const sub = search(
-      rest.filter((e) => e !== opp),
-      strict,
-      budget,
-    );
-    if (sub) return [[top, opp], ...sub];
-  }
-  return null;
-}
+  const index = new Map(pool.map((e, i) => [e, i]));
+  // cost[i][j]: squared score gap, or Infinity when the two can't meet.
+  const cost = pool.map((a) => pool.map((b) => (a !== b && compatible(a, b, strict) ? (a.score - b.score) ** 2 : Infinity)));
 
-/** Runs one search; an exhausted budget counts as "not found" so the caller can try the next option. */
-function trySearch(pool: Entrant[], strict: boolean, budget: Budget) {
+  /** Each player still has to meet someone in the pool: half the sum of their cheapest options. */
+  const lowerBound = (rest: Entrant[]) => {
+    let lb = 0;
+    for (const a of rest) {
+      const row = cost[index.get(a)!];
+      let min = Infinity;
+      for (const b of rest) min = Math.min(min, row[index.get(b)!]);
+      if (min === Infinity) return Infinity;
+      lb += min;
+    }
+    return lb / 2;
+  };
+
+  let best: [Entrant, Entrant][] | null = null;
+  let bestCost = Infinity;
+  const current: [Entrant, Entrant][] = [];
+
+  const walk = (rest: Entrant[], acc: number) => {
+    if (rest.length === 0) {
+      best = [...current];
+      bestCost = acc;
+      return;
+    }
+    if (++budget.nodes > budget.limit) throw new SearchAborted();
+    if (acc + lowerBound(rest) >= bestCost) return;
+    const [top, ...others] = rest;
+    const row = cost[index.get(top)!];
+    for (const opp of candidateOrder(others, top)) {
+      const c = row[index.get(opp)!];
+      if (c === Infinity || acc + c >= bestCost) continue;
+      current.push([top, opp]);
+      walk(
+        others.filter((e) => e !== opp),
+        acc + c,
+      );
+      current.pop();
+    }
+  };
+
   try {
-    return search(pool, strict, budget);
+    walk(pool, 0);
   } catch (e) {
-    if (e instanceof SearchAborted) return null;
-    throw e;
+    // Out of budget: keep the best pairing found so far, if any.
+    if (!(e instanceof SearchAborted)) throw e;
   }
+  return best;
 }
 
 function attempt(entrants: Entrant[], strict: boolean, strictBye: boolean) {
   if (entrants.length % 2 === 0) {
-    const pairs = trySearch(entrants, strict, { nodes: 0, limit: NODE_LIMIT });
+    const pairs = search(entrants, strict, { nodes: 0, limit: NODE_LIMIT });
     return pairs ? { pairs, bye: null as Entrant | null } : null;
   }
   // Bye candidates: lowest score first, then lowest-ranked. Each gets its own budget,
@@ -164,7 +197,7 @@ function attempt(entrants: Entrant[], strict: boolean, strictBye: boolean) {
     const remaining = TOTAL_NODE_LIMIT - spent;
     if (remaining <= 0) break;
     const budget = { nodes: 0, limit: Math.min(NODE_LIMIT, remaining) };
-    const pairs = trySearch(
+    const pairs = search(
       entrants.filter((e) => e !== bye),
       strict,
       budget,

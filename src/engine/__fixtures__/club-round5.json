@@ -1,0 +1,265 @@
+{
+  "app": "swiss-lite",
+  "version": 1,
+  "tournament": {
+    "name": "Club event (anonymized)",
+    "location": "",
+    "arbiter": "",
+    "startDate": "2026-10-06",
+    "system": "swiss",
+    "totalRounds": 5,
+    "byePoints": 1,
+    "tiebreaks": [
+      "buchholzCut1",
+      "buchholz",
+      "sonnebornBerger",
+      "wins"
+    ],
+    "players": [
+      {
+        "name": "Player 01",
+        "rating": 0,
+        "id": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 02",
+        "rating": 0,
+        "id": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 03",
+        "rating": 0,
+        "id": "f2260886-4714-43a5-9a39-4c3244a8615b",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 04",
+        "rating": 0,
+        "id": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 05",
+        "rating": 0,
+        "id": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 06",
+        "rating": 0,
+        "id": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 07",
+        "rating": 0,
+        "id": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 08",
+        "rating": 0,
+        "id": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 09",
+        "rating": 0,
+        "id": "c0d37715-4129-4476-a603-3551e5475b58",
+        "withdrawn": false
+      },
+      {
+        "name": "Player 10",
+        "rating": 0,
+        "id": "e0c8beda-b956-40b7-9f13-fccf57773392",
+        "withdrawn": false
+      }
+    ],
+    "rounds": [
+      {
+        "number": 1,
+        "pairings": [
+          {
+            "board": 1,
+            "white": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+            "black": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+            "result": "1-0"
+          },
+          {
+            "board": 2,
+            "white": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+            "black": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+            "result": "\u00bd-\u00bd"
+          },
+          {
+            "board": 3,
+            "white": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+            "black": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+            "result": "0-1"
+          },
+          {
+            "board": 4,
+            "white": "e0c8beda-b956-40b7-9f13-fccf57773392",
+            "black": "f2260886-4714-43a5-9a39-4c3244a8615b",
+            "result": "0-1"
+          },
+          {
+            "board": 5,
+            "white": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+            "black": "c0d37715-4129-4476-a603-3551e5475b58",
+            "result": "1-0"
+          }
+        ],
+        "halfByes": []
+      },
+      {
+        "number": 2,
+        "pairings": [
+          {
+            "board": 1,
+            "white": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+            "black": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+            "result": "0-1"
+          },
+          {
+            "board": 2,
+            "white": "f2260886-4714-43a5-9a39-4c3244a8615b",
+            "black": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+            "result": "\u00bd-\u00bd"
+          },
+          {
+            "board": 3,
+            "white": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+            "black": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+            "result": "1-0"
+          },
+          {
+            "board": 4,
+            "white": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+            "black": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+            "result": "0-1"
+          },
+          {
+            "board": 5,
+            "white": "c0d37715-4129-4476-a603-3551e5475b58",
+            "black": "e0c8beda-b956-40b7-9f13-fccf57773392",
+            "result": "\u00bd-\u00bd"
+          }
+        ],
+        "halfByes": []
+      },
+      {
+        "number": 3,
+        "pairings": [
+          {
+            "board": 1,
+            "white": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+            "black": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+            "result": "0-1"
+          },
+          {
+            "board": 2,
+            "white": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+            "black": "f2260886-4714-43a5-9a39-4c3244a8615b",
+            "result": "\u00bd-\u00bd"
+          },
+          {
+            "board": 3,
+            "white": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+            "black": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+            "result": "1-0"
+          },
+          {
+            "board": 4,
+            "white": "e0c8beda-b956-40b7-9f13-fccf57773392",
+            "black": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+            "result": "0-1"
+          },
+          {
+            "board": 5,
+            "white": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+            "black": "c0d37715-4129-4476-a603-3551e5475b58",
+            "result": "1-0"
+          }
+        ],
+        "halfByes": []
+      },
+      {
+        "number": 4,
+        "pairings": [
+          {
+            "board": 1,
+            "white": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+            "black": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+            "result": "1-0"
+          },
+          {
+            "board": 2,
+            "white": "f2260886-4714-43a5-9a39-4c3244a8615b",
+            "black": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+            "result": "1-0"
+          },
+          {
+            "board": 3,
+            "white": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+            "black": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+            "result": "1-0"
+          },
+          {
+            "board": 4,
+            "white": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+            "black": "c0d37715-4129-4476-a603-3551e5475b58",
+            "result": "\u00bd-\u00bd"
+          },
+          {
+            "board": 5,
+            "white": "e0c8beda-b956-40b7-9f13-fccf57773392",
+            "black": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+            "result": "\u00bd-\u00bd"
+          }
+        ],
+        "halfByes": []
+      },
+      {
+        "number": 5,
+        "pairings": [
+          {
+            "board": 1,
+            "white": "f2260886-4714-43a5-9a39-4c3244a8615b",
+            "black": "14b076af-132a-4d74-920f-2c3d8ff25f31",
+            "result": "0-1"
+          },
+          {
+            "board": 2,
+            "white": "3bf8555b-48d0-4bf0-9e82-802ba764a939",
+            "black": "a40aa20c-cdc1-4814-9c1f-6237d5f70c4d",
+            "result": "1-0"
+          },
+          {
+            "board": 3,
+            "white": "9a0a0b73-04eb-40b9-a3a1-bd4933609cb2",
+            "black": "e0c8beda-b956-40b7-9f13-fccf57773392",
+            "result": "1-0"
+          },
+          {
+            "board": 4,
+            "white": "13b1e6ac-f7cb-4d37-b12d-d4c3e78d1c69",
+            "black": "d752c62b-2fdd-47f8-9266-0177b31de2f3",
+            "result": "1-0"
+          },
+          {
+            "board": 5,
+            "white": "c0d37715-4129-4476-a603-3551e5475b58",
+            "black": "313e29f3-6601-47ad-bb1a-87a50b01089c",
+            "result": "1-0"
+          }
+        ],
+        "halfByes": []
+      }
+    ],
+    "pendingHalfByes": [],
+    "rrOrder": []
+  }
+}

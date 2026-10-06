@@ -113,15 +113,18 @@ describe('swiss pairing — simulation', () => {
           })),
         });
 
+        // A strict round must not break the color limits with the colors it hands out.
+        // (Earlier relaxed rounds may already have, so only this round's colors are judged.)
         if (res.strictColors) {
           const after = summarize(t, r);
           for (const s of after.values()) {
+            if (s.records[r - 1]?.kind !== 'game') continue;
             const cols = s.records.filter((x) => x.kind === 'game').map((x) => x.color);
-            const diff = cols.reduce((d, c) => d + (c === 'W' ? 1 : -1), 0);
-            expect(Math.abs(diff)).toBeLessThanOrEqual(2);
-            for (let i = 2; i < cols.length; i++) {
-              expect(cols[i] === cols[i - 1] && cols[i] === cols[i - 2]).toBe(false);
-            }
+            const prev = cols.slice(0, -1).reduce((d, c) => d + (c === 'W' ? 1 : -1), 0);
+            const diff = prev + (cols[cols.length - 1] === 'W' ? 1 : -1);
+            expect(Math.abs(diff) <= 2 || Math.abs(diff) < Math.abs(prev), `round ${r} color diff`).toBe(true);
+            const k = cols.length;
+            expect(k >= 3 && cols[k - 1] === cols[k - 2] && cols[k - 1] === cols[k - 3], `round ${r} three in a row`).toBe(false);
           }
         }
       }
@@ -301,5 +304,24 @@ describe('tiebreaks', () => {
     const rows = computeStandings(fixture(), 1);
     expect(rows.find((r) => r.player.id === 'A')!.points).toBe(1);
     expect(rows.find((r) => r.player.id === 'A')!.summary.records).toHaveLength(1);
+  });
+});
+
+describe('real club event (anonymized)', () => {
+  // 10 players, 5 rounds. Round 5 looked odd (2½ vs 1½ while 2-pointers were free), but every
+  // closer pairing repeats a game or gives a player a third White out of 4 → 5.
+  it('pairs round 5 with the smallest possible score gaps', async () => {
+    const data = (await import('./__fixtures__/club-round5.json')).default;
+    const full = data.tournament as unknown as Tournament;
+    const t = { ...full, rounds: full.rounds.slice(0, 4) };
+    const res = pairSwiss(t, 5, []);
+    if (!res.ok) throw new Error(res.error);
+    expect(res.strictColors).toBe(true);
+    const pts = summarize(t, 4);
+    const gap = res.pairings.reduce((c, p) => c + (pts.get(p.white)!.points - pts.get(p.black!)!.points) ** 2, 0);
+    expect(gap).toBe(3.5);
+    // Leaders (3½ and 3) meet on table 1.
+    const top = res.pairings[0];
+    expect([pts.get(top.white)!.points, pts.get(top.black!)!.points].sort()).toEqual([3, 3.5]);
   });
 });
