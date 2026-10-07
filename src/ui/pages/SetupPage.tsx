@@ -97,6 +97,21 @@ export default function SetupPage() {
         )}
       </section>
 
+      {shared && (
+        <section className="card">
+          <h2>Inscriptions en ligne</h2>
+          <label className="inline">
+            <input type="checkbox" checked={t.registrationOpen} onChange={(e) => updateInfo({ registrationOpen: e.target.checked })} />
+            Les joueurs peuvent s'inscrire depuis le site
+          </label>
+          <p className="hint">
+            Chaque inscription attend votre validation dans l'onglet <a href="#players">Joueurs</a>. Les inscriptions se ferment
+            automatiquement à l'appariement de la ronde 1 ; rouvrez-les ici pour accepter des retardataires.
+          </p>
+          {t.system === 'roundrobin' && started && <p className="banner warn">Le toutes rondes a commencé : plus aucune inscription possible.</p>}
+        </section>
+      )}
+
       <section className="card">
         <h2>Ordre des départages</h2>
         <ol className="tb-list">

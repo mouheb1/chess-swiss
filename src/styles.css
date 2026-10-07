@@ -312,6 +312,31 @@ label.inline {
   white-space: nowrap;
 }
 
+.hint a {
+  color: var(--accent);
+}
+
+.reg-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.reg-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.reg-who {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .danger-zone {
   margin-top: 1.25rem;
   padding-top: 1rem;

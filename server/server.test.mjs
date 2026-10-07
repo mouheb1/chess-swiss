@@ -92,6 +92,77 @@ describe('shared tournament API', () => {
   });
 });
 
+describe('player registration', () => {
+  const open = { ...tournament, registrationOpen: true };
+  const register = (call, body) =>
+    call('/api/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const pending = async (call, pin = PIN) => call('/api/registrations', { headers: { 'x-arbiter-pin': pin } });
+
+  it('refuses registrations while closed', async () => {
+    const { call, put } = await start();
+    expect((await register(call, { name: 'Bob' })).status).toBe(403);
+    await put({ baseVersion: 0, tournament });
+    expect((await register(call, { name: 'Bob' })).status).toBe(403);
+  });
+
+  it('accepts a valid registration and shows it only to the arbiter', async () => {
+    const { call, put } = await start();
+    await put({ baseVersion: 0, tournament: open });
+    expect((await register(call, { name: '  Bob   Smith ', rating: 1500, fed: 'fra' })).status).toBe(201);
+    expect((await pending(call, 'nope')).status).toBe(401);
+    const { registrations } = await (await pending(call)).json();
+    expect(registrations).toHaveLength(1);
+    expect(registrations[0]).toMatchObject({ name: 'Bob Smith', rating: 1500, fed: 'FRA' });
+    expect(JSON.stringify(await (await call('/api/state')).json())).not.toContain('Bob');
+  });
+
+  it('rejects bad fields and duplicate names', async () => {
+    const { call, put } = await start();
+    await put({ baseVersion: 0, tournament: open });
+    expect((await register(call, { name: '' })).status).toBe(400);
+    expect((await register(call, { name: 'X', rating: 9000 })).status).toBe(400);
+    expect((await register(call, { name: 'X', fed: '12' })).status).toBe(400);
+    expect((await register(call, { name: 'a' })).status).toBe(409); // already a player
+    expect((await register(call, { name: 'Bob' })).status).toBe(201);
+    expect((await register(call, { name: ' bob ' })).status).toBe(409);
+  });
+
+  it('stops at 100 pending registrations', async () => {
+    const { call, put } = await start();
+    await put({ baseVersion: 0, tournament: open });
+    await Promise.all(Array.from({ length: 100 }, (_, i) => register(call, { name: `P${i}` })));
+    expect((await register(call, { name: 'One too many' })).status).toBe(429);
+  });
+
+  it('closes for a round robin that has started', async () => {
+    const { call, put } = await start();
+    await put({ baseVersion: 0, tournament: { ...open, system: 'roundrobin', rounds: [{ number: 1, pairings: [] }] } });
+    expect((await register(call, { name: 'Bob' })).status).toBe(403);
+  });
+
+  it('drops a registration once a saved tournament contains its id, and deletes on reject', async () => {
+    const { call, put } = await start();
+    await put({ baseVersion: 0, tournament: open });
+    await register(call, { name: 'Bob' });
+    await register(call, { name: 'Eve' });
+    const [bob, eve] = (await (await pending(call)).json()).registrations;
+    await put({ baseVersion: 1, tournament: { ...open, players: [...open.players, { id: bob.id, name: 'Bob', rating: 0 }] } });
+    expect((await (await pending(call)).json()).registrations.map((r) => r.name)).toEqual(['Eve']);
+    const del = (pin) => call(`/api/registrations/${eve.id}`, { method: 'DELETE', headers: { 'x-arbiter-pin': pin } });
+    expect((await del('nope')).status).toBe(401);
+    expect((await del(PIN)).status).toBe(200);
+    expect((await (await pending(call)).json()).registrations).toEqual([]);
+  });
+
+  it('keeps pending registrations across a restart', async () => {
+    const first = await start();
+    await first.put({ baseVersion: 0, tournament: open });
+    await register(first.call, { name: 'Bob' });
+    const second = await start();
+    expect((await (await pending(second.call)).json()).registrations).toHaveLength(1);
+  });
+});
+
 describe('static files', () => {
   it('serves hashed assets as immutable and index.html uncached', async () => {
     const { call } = await start();

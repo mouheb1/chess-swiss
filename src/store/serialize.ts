@@ -14,6 +14,7 @@ export function emptyTournament(): Tournament {
     rounds: [],
     pendingHalfByes: [],
     rrOrder: [],
+    registrationOpen: false,
   };
 }
 

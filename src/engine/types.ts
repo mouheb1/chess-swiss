@@ -50,6 +50,19 @@ export interface Tournament {
   pendingHalfByes: string[];
   /** Fixed round-robin seating (player ids), set when round 1 is paired. */
   rrOrder: string[];
+  /** Players may sign up from the shared site (the arbiter still accepts each one). */
+  registrationOpen: boolean;
+}
+
+/** A sign-up waiting for the arbiter. Its id becomes the player id once accepted. */
+export interface Registration {
+  id: string;
+  name: string;
+  rating: number;
+  title?: string;
+  fed?: string;
+  club?: string;
+  createdAt: string;
 }
 
 export const TIEBREAK_LABELS: Record<TiebreakId, string> = {

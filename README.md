@@ -26,6 +26,10 @@ In production a small Node server (`server/server.mjs`, no dependencies) serves 
 tournament, so everyone who opens the URL sees the same pairings and standings. Viewers refresh every 10 s;
 the arbiter unlocks editing with a PIN.
 
+Players can sign up from the site when the arbiter ticks *Inscriptions en ligne* in Paramètres. Sign-ups wait
+in the Joueurs tab until the arbiter accepts or refuses them; they are stored in `registrations.json` next to the
+tournament and never shown publicly. Pairing round 1 closes sign-ups (the arbiter can reopen them for late entries).
+
 | Env | Default | |
 |---|---|---|
 | `ARBITER_PIN` | — | Required to edit. Without it the site is read-only for everyone. Use 6+ characters. |

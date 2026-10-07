@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { startingRank } from '../../engine/scores';
+import { acceptRegistration, rejectRegistration, submitRegistration, useSync } from '../../store/sync';
 import { useCanEdit, useCurrentTournament, useTournament, type NewPlayer } from '../../store/useTournament';
 
 const blank = { name: '', rating: '', title: '', fed: '', club: '' };
@@ -22,6 +23,92 @@ function parseBulk(text: string): NewPlayer[] {
     .filter((p) => p.name);
 }
 
+const toNewPlayer = (f: typeof blank): NewPlayer => ({
+  name: f.name.trim(),
+  rating: Number(f.rating) || 0,
+  title: f.title.trim() || undefined,
+  fed: f.fed.trim().toUpperCase() || undefined,
+  club: f.club.trim() || undefined,
+});
+
+/** Public sign-up form, shown to viewers while the arbiter keeps registration open. */
+function RegisterCard() {
+  const [form, setForm] = useState(blank);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setBusy(true);
+    const err = await submitRegistration(toNewPlayer(form));
+    setBusy(false);
+    if (err) return setMsg({ kind: 'error', text: err });
+    setMsg({ kind: 'ok', text: `Inscription de ${form.name.trim()} envoyée. Elle apparaîtra dans la liste une fois validée par l'arbitre.` });
+    setForm(blank);
+  };
+
+  return (
+    <section className="card">
+      <h2>S'inscrire</h2>
+      <p className="hint">Les inscriptions sont ouvertes. Seul le nom est obligatoire.</p>
+      <form className="add-player" onSubmit={submit}>
+        <input placeholder="Nom Prénom" value={form.name} maxLength={80} onChange={(e) => setForm({ ...form, name: e.target.value })} required aria-label="Nom" />
+        <input placeholder="Elo" inputMode="numeric" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} aria-label="Elo" />
+        <input placeholder="Titre" value={form.title} maxLength={4} onChange={(e) => setForm({ ...form, title: e.target.value })} aria-label="Titre" />
+        <input placeholder="Féd." maxLength={3} value={form.fed} onChange={(e) => setForm({ ...form, fed: e.target.value })} aria-label="Fédération" />
+        <input placeholder="Club" value={form.club} maxLength={80} onChange={(e) => setForm({ ...form, club: e.target.value })} aria-label="Club" />
+        <button type="submit" disabled={busy || !form.name.trim()}>
+          {busy ? '…' : "S'inscrire"}
+        </button>
+      </form>
+      {msg && <p className={`banner ${msg.kind}`}>{msg.text}</p>}
+    </section>
+  );
+}
+
+/** Arbiter: sign-ups waiting to be accepted or refused. */
+function PendingCard() {
+  const registrations = useSync((s) => s.registrations);
+  const open = useTournament((s) => s.tournament.registrationOpen);
+  const [error, setError] = useState<string | null>(null);
+  if (!registrations.length && !open) return null;
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Inscriptions en attente ({registrations.length})</h2>
+        <span className="hint">
+          {open ? 'Inscriptions ouvertes' : 'Inscriptions fermées'} — <a href="#setup">modifier dans Paramètres</a>
+        </span>
+      </div>
+      {registrations.length === 0 ? (
+        <p className="empty">Aucune inscription en attente.</p>
+      ) : (
+        <ul className="reg-list">
+          {registrations.map((r) => (
+            <li key={r.id}>
+              <div className="reg-who">
+                <span className="strong">{r.title ? `${r.title} ${r.name}` : r.name}</span>
+                <span className="hint">{[r.rating || null, r.fed, r.club].filter(Boolean).join(' · ')}</span>
+              </div>
+              <span className="row-actions">
+                <button className="small" onClick={() => setError(acceptRegistration(r))}>
+                  Accepter
+                </button>
+                <button className="ghost small" onClick={() => void rejectRegistration(r.id)}>
+                  Refuser
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="banner error">{error}</p>}
+    </section>
+  );
+}
+
 export default function PlayersPage() {
   const t = useCurrentTournament();
   const { addPlayers, updatePlayer, removePlayer, toggleWithdrawn } = useTournament.getState();
@@ -32,19 +119,13 @@ export default function PlayersPage() {
   const canEdit = useCanEdit();
   const locked = !canEdit || (t.system === 'roundrobin' && started);
   const players = startingRank(t.players);
+  const mode = useTournament((s) => s.mode);
+  const canRegister = mode === 'viewer' && t.registrationOpen && !(t.system === 'roundrobin' && started);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    const err = addPlayers([
-      {
-        name: form.name.trim(),
-        rating: Number(form.rating) || 0,
-        title: form.title.trim() || undefined,
-        fed: form.fed.trim().toUpperCase() || undefined,
-        club: form.club.trim() || undefined,
-      },
-    ]);
+    const err = addPlayers([toNewPlayer(form)]);
     setError(err);
     if (!err) setForm(blank);
   };
@@ -59,6 +140,8 @@ export default function PlayersPage() {
 
   return (
     <div className="stack">
+      {canRegister && <RegisterCard />}
+      {mode === 'arbiter' && <PendingCard />}
       {!locked && (
         <section className="card">
           <h2>Ajouter un joueur</h2>

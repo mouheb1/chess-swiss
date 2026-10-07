@@ -25,6 +25,7 @@ function makeTournament(n: number, system: Tournament['system'] = 'swiss'): Tour
     rounds: [],
     pendingHalfByes: [],
     rrOrder: [],
+    registrationOpen: false,
   };
 }
 

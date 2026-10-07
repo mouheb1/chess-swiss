@@ -4,17 +4,22 @@
 //   GET  /api/state        everyone: { tournament, version, updatedAt, editable }
 //   POST /api/auth         arbiter: checks the PIN (header x-arbiter-pin)
 //   PUT  /api/tournament   arbiter: { baseVersion, tournament } → new version, 409 if stale
+//   POST /api/registrations          everyone, while registration is open: { name, rating, title, fed, club }
+//   GET  /api/registrations          arbiter: pending registrations
+//   DELETE /api/registrations/:id    arbiter: reject one (accepting = saving a tournament with that player id)
 //   GET  /health           liveness probe
 //
 // Env: PORT (9010), DATA_DIR (./data), DIST_DIR (./dist), ARBITER_PIN (editing is off without it).
 
 import { createServer } from 'node:http';
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const MAX_BODY = 1024 * 1024;
+const MAX_REGISTRATION_BODY = 2048;
+const MAX_PENDING = 100;
 const LOCK_FAILURES = 10;
 const LOCK_WINDOW_MS = 15 * 60 * 1000;
 
@@ -53,6 +58,29 @@ function isTournament(t) {
   );
 }
 
+const normName = (n) => n.trim().replace(/\s+/g, ' ').toLowerCase();
+
+/** Returns the cleaned registration, or null if anything is off. */
+function cleanRegistration(b) {
+  if (!b || typeof b !== 'object') return null;
+  const str = (v, max) => (v === undefined || v === null || v === '' ? '' : typeof v === 'string' && v.trim().length <= max ? v.trim() : null);
+  const name = typeof b.name === 'string' ? b.name.trim().replace(/\s+/g, ' ') : '';
+  const title = str(b.title, 4);
+  const fed = str(b.fed, 3);
+  const club = str(b.club, 80);
+  const rating = b.rating === undefined || b.rating === '' ? 0 : Number(b.rating);
+  if (!name || name.length > 80 || title === null || fed === null || club === null) return null;
+  if (!Number.isInteger(rating) || rating < 0 || rating > 3500) return null;
+  if (fed && !/^[A-Za-z]{2,3}$/.test(fed)) return null;
+  return {
+    name,
+    rating,
+    ...(title ? { title } : {}),
+    ...(fed ? { fed: fed.toUpperCase() } : {}),
+    ...(club ? { club } : {}),
+  };
+}
+
 /** Wrong PINs are counted globally: behind Traefik every request comes from the proxy's IP. */
 function createLock(now = () => Date.now()) {
   let failures = [];
@@ -73,11 +101,18 @@ function pinMatches(expected, given) {
 export async function createApp({ distDir, dataDir, pin }) {
   const dist = resolve(distDir);
   const dataFile = join(resolve(dataDir), 'tournament.json');
+  const regFile = join(resolve(dataDir), 'registrations.json');
   await mkdir(resolve(dataDir), { recursive: true });
 
   let state = { version: 0, updatedAt: null, tournament: null };
   try {
     state = JSON.parse(await readFile(dataFile, 'utf8'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  let registrations = [];
+  try {
+    registrations = JSON.parse(await readFile(regFile, 'utf8'));
   } catch (e) {
     if (e.code !== 'ENOENT') throw e;
   }
@@ -92,6 +127,31 @@ export async function createApp({ distDir, dataDir, pin }) {
     await rename(tmp, dataFile);
     state = next;
   }
+
+  // Registration writes are chained so two at once never share the temp file.
+  let regWrites = Promise.resolve();
+  const saveRegistrations = () => {
+    const snapshot = JSON.stringify(registrations);
+    regWrites = regWrites.then(async () => {
+      const tmp = `${regFile}.${process.pid}.tmp`;
+      await writeFile(tmp, snapshot);
+      await rename(tmp, regFile);
+    });
+    return regWrites;
+  };
+
+  /** A saved tournament containing a registration's id means the arbiter accepted it. */
+  const dropAccepted = () => {
+    const ids = new Set(state.tournament?.players.map((p) => p.id) ?? []);
+    const before = registrations.length;
+    registrations = registrations.filter((r) => !ids.has(r.id));
+    return registrations.length !== before ? saveRegistrations() : undefined;
+  };
+
+  const registrationOpen = () => {
+    const t = state.tournament;
+    return Boolean(t && t.registrationOpen === true && !(t.system === 'roundrobin' && t.rounds.length > 0));
+  };
 
   const send = (res, status, body, headers = {}) => {
     const isJson = body !== undefined && typeof body !== 'string';
@@ -114,13 +174,13 @@ export async function createApp({ distDir, dataDir, pin }) {
     return false;
   };
 
-  const readBody = (req) =>
+  const readBody = (req, limit = MAX_BODY) =>
     new Promise((ok, fail) => {
       let size = 0;
       const chunks = [];
       req.on('data', (c) => {
         size += c.length;
-        if (size > MAX_BODY) {
+        if (size > limit) {
           fail(Object.assign(new Error('too large'), { status: 413 }));
           req.destroy();
         } else chunks.push(c);
@@ -179,7 +239,41 @@ export async function createApp({ distDir, dataDir, pin }) {
       // Someone else saved since this client last synced: hand back the newer data.
       if (body.baseVersion !== state.version) return send(res, 409, { error: 'conflict', ...state });
       await persist({ version: state.version + 1, updatedAt: new Date().toISOString(), tournament: body.tournament });
+      await dropAccepted();
       return send(res, 200, { version: state.version, updatedAt: state.updatedAt });
+    }
+
+    if (pathname === '/api/registrations' && req.method === 'POST') {
+      let body;
+      try {
+        body = JSON.parse(await readBody(req, MAX_REGISTRATION_BODY));
+      } catch (e) {
+        return send(res, e.status ?? 400, { error: e.status ? 'too-large' : 'bad-json' });
+      }
+      // Everything from here to the push is synchronous, so two requests can't both pass the checks.
+      if (!registrationOpen()) return send(res, 403, { error: 'closed' });
+      const reg = cleanRegistration(body);
+      if (!reg) return send(res, 400, { error: 'bad-shape' });
+      const key = normName(reg.name);
+      const taken = [...registrations, ...state.tournament.players].some((p) => normName(p.name) === key);
+      if (taken) return send(res, 409, { error: 'duplicate' });
+      if (registrations.length >= MAX_PENDING) return send(res, 429, { error: 'full' });
+      registrations.push({ id: randomUUID(), ...reg, createdAt: new Date().toISOString() });
+      await saveRegistrations();
+      return send(res, 201, { ok: true });
+    }
+
+    if (pathname === '/api/registrations' && req.method === 'GET') {
+      if (refuseUnlessArbiter(req, res)) return;
+      return send(res, 200, { registrations });
+    }
+
+    const regMatch = pathname.match(/^\/api\/registrations\/([\w-]+)$/);
+    if (regMatch && req.method === 'DELETE') {
+      if (refuseUnlessArbiter(req, res)) return;
+      registrations = registrations.filter((r) => r.id !== regMatch[1]);
+      await saveRegistrations();
+      return send(res, 200, { ok: true });
     }
 
     if (pathname.startsWith('/api/')) return send(res, 404, { error: 'not-found' });

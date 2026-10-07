@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { Tournament } from '../engine/types';
+import type { Registration, Tournament } from '../engine/types';
 import { parseTournamentJson } from './serialize';
-import { useTournament } from './useTournament';
+import { useTournament, type NewPlayer } from './useTournament';
 
 /**
  * Talks to the shared server when there is one.
@@ -40,6 +40,8 @@ interface SyncState {
   saveState: SaveState;
   notice: string | null;
   choice: LoginChoice | null;
+  /** Pending sign-ups, arbiter only. */
+  registrations: Registration[];
 }
 
 export const useSync = create<SyncState>(() => ({
@@ -50,6 +52,7 @@ export const useSync = create<SyncState>(() => ({
   saveState: 'idle',
   notice: null,
   choice: null,
+  registrations: [],
 }));
 
 let version = 0;
@@ -169,6 +172,56 @@ async function push() {
   if (dirty && useSync.getState().saveState === 'saved') push();
 }
 
+/** Pending sign-ups, minus any this device already accepted but hasn't saved yet. */
+async function fetchRegistrations() {
+  if (!pin || useTournament.getState().mode !== 'arbiter') return;
+  const res = await fetch('/api/registrations', { headers: { 'x-arbiter-pin': pin }, cache: 'no-store' }).catch(() => null);
+  // A PIN changed on the server must not keep failing every poll and lock the real arbiter out.
+  if (res && (res.status === 401 || res.status === 423 || res.status === 503)) {
+    await logout();
+    useSync.setState({ notice: 'Le code arbitre a été refusé. Reconnectez-vous.' });
+    return;
+  }
+  if (!res?.ok) return;
+  const { registrations } = (await res.json()) as { registrations: Registration[] };
+  const ids = new Set(useTournament.getState().tournament.players.map((p) => p.id));
+  useSync.setState({ registrations: registrations.filter((r) => !ids.has(r.id)) });
+}
+
+/** Returns an error message, or null once the sign-up is waiting for the arbiter. */
+export async function submitRegistration(p: NewPlayer): Promise<string | null> {
+  const res = await fetch('/api/registrations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(p),
+  }).catch(() => null);
+  if (!res) return 'Serveur injoignable.';
+  if (res.ok) return null;
+  const error = ((await res.json().catch(() => ({}))) as { error?: string }).error;
+  if (error === 'closed') return 'Les inscriptions sont fermées.';
+  if (error === 'duplicate') return 'Ce nom est déjà inscrit.';
+  if (error === 'full') return 'Trop d’inscriptions en attente. Réessayez plus tard ou adressez-vous à l’arbitre.';
+  if (error === 'bad-shape') return 'Vérifiez les champs : Elo entre 0 et 3500, fédération en 3 lettres.';
+  return 'Erreur du serveur.';
+}
+
+/**
+ * The player keeps the registration's id: once the tournament is saved, the server drops
+ * the matching sign-up itself. If that save loses a conflict, the sign-up simply stays pending.
+ */
+export function acceptRegistration(r: Registration): string | null {
+  const { id, name, rating, title, fed, club } = r;
+  const err = useTournament.getState().addPlayers([{ id, name, rating, title, fed, club }]);
+  if (!err) useSync.setState((s) => ({ registrations: s.registrations.filter((x) => x.id !== id) }));
+  return err;
+}
+
+export async function rejectRegistration(id: string) {
+  if (!pin) return;
+  const res = await fetch(`/api/registrations/${id}`, { method: 'DELETE', headers: { 'x-arbiter-pin': pin } }).catch(() => null);
+  if (res?.ok) useSync.setState((s) => ({ registrations: s.registrations.filter((x) => x.id !== id) }));
+}
+
 async function poll() {
   const s = await fetchState();
   if (!s) {
@@ -180,6 +233,7 @@ async function poll() {
   if (mode === 'viewer' && s.version !== version) applyServer(s.tournament, s.version);
   // Changes from another arbiter device, only when nothing is waiting to be saved here.
   if (mode === 'arbiter' && !dirty && !inFlight && s.version > version) applyServer(s.tournament, s.version);
+  await fetchRegistrations();
 }
 
 function enterViewer(s: ServerState) {
@@ -191,6 +245,7 @@ function enterArbiter(p: string) {
   pin = p;
   storage.set(PIN_KEY, p);
   useTournament.setState({ mode: 'arbiter', shared: null });
+  void fetchRegistrations();
 }
 
 /** Returns an error message, or null when logged in (or a choice is pending). */
@@ -252,6 +307,7 @@ export function cancelChoice() {
 export async function logout() {
   pin = null;
   storage.remove(PIN_KEY);
+  useSync.setState({ registrations: [] });
   useTournament.setState({ mode: 'viewer' });
   version = -1; // force the next poll to load the shared copy
   await poll();

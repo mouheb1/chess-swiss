@@ -44,10 +44,15 @@ const safeStorage: Storage = {
   },
 };
 
-export type NewPlayer = Omit<Player, 'id' | 'withdrawn'>;
+export type NewPlayer = Omit<Player, 'id' | 'withdrawn'> & {
+  /** Keeps an accepted registration's id, so the server can match it. */
+  id?: string;
+};
 
 interface Actions {
-  updateInfo: (patch: Partial<Pick<Tournament, 'name' | 'location' | 'arbiter' | 'startDate' | 'totalRounds' | 'byePoints' | 'tiebreaks'>>) => void;
+  updateInfo: (
+    patch: Partial<Pick<Tournament, 'name' | 'location' | 'arbiter' | 'startDate' | 'totalRounds' | 'byePoints' | 'tiebreaks' | 'registrationOpen'>>,
+  ) => void;
   setSystem: (system: System) => void;
   addPlayers: (players: NewPlayer[]) => string | null;
   updatePlayer: (id: string, patch: Partial<NewPlayer>) => void;
@@ -109,7 +114,8 @@ export const useTournament = create<State & Actions>()(
         const t = get().tournament;
         if (t.system === 'roundrobin' && t.rounds.length) return 'Le toutes rondes a commencé — impossible d\'ajouter des joueurs.';
         update(set, (t) => {
-          const all = [...t.players, ...players.map((p) => ({ ...p, id: uid(), withdrawn: false }))];
+          const fresh = players.filter((p) => !p.id || !t.players.some((x) => x.id === p.id));
+          const all = [...t.players, ...fresh.map((p) => ({ ...p, id: p.id ?? uid(), withdrawn: false }))];
           return { ...t, players: all, totalRounds: t.system === 'roundrobin' ? rrTotalRounds(all.length) : t.totalRounds };
         });
         return null;
@@ -147,14 +153,25 @@ export const useTournament = create<State & Actions>()(
           if (t.players.length < 2) return { error: 'Il faut au moins 2 joueurs.', warning: null };
           const order = t.rrOrder.length ? t.rrOrder : startingRank(t.players).map((p) => p.id);
           const pairings = pairRoundRobin(order, next);
-          update(set, (t) => ({ ...t, rrOrder: order, rounds: [...t.rounds, { number: next, pairings, halfByes: [] }] }));
+          update(set, (t) => ({
+            ...t,
+            rrOrder: order,
+            registrationOpen: next === 1 ? false : t.registrationOpen,
+            rounds: [...t.rounds, { number: next, pairings, halfByes: [] }],
+          }));
           return { error: null, warning: null };
         }
 
         const halfByes = t.pendingHalfByes.filter((id) => t.players.some((p) => p.id === id && !p.withdrawn));
         const res = pairSwiss(t, next, halfByes);
         if (!res.ok) return { error: res.error, warning: null };
-        update(set, (t) => ({ ...t, pendingHalfByes: [], rounds: [...t.rounds, { number: next, pairings: res.pairings, halfByes }] }));
+        update(set, (t) => ({
+          ...t,
+          pendingHalfByes: [],
+          // Round 1 closes sign-ups; the arbiter can reopen them for late entries.
+          registrationOpen: next === 1 ? false : t.registrationOpen,
+          rounds: [...t.rounds, { number: next, pairings: res.pairings, halfByes }],
+        }));
         const warning = res.relaxedBye
           ? 'L\'exempt a été attribué à un joueur ayant déjà gagné par forfait — aucun autre appariement n\'était possible.'
           : !res.strictColors

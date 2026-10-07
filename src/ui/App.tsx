@@ -34,7 +34,9 @@ export default function App() {
 
   // Viewers don't get the settings page; they land on the pairings.
   const tabs = canEdit ? TABS : TABS.filter((x) => x.id !== 'setup');
-  const tab: TabId = hashTab && tabs.some((x) => x.id === hashTab) ? hashTab : canEdit ? 'setup' : 'rounds';
+  // While sign-ups are open and nothing is paired yet, viewers land on the sign-up form.
+  const viewerHome = t.registrationOpen && t.rounds.length === 0 ? 'players' : 'rounds';
+  const tab: TabId = hashTab && tabs.some((x) => x.id === hashTab) ? hashTab : canEdit ? 'setup' : viewerHome;
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
