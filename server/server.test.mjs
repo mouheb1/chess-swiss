@@ -124,7 +124,8 @@ describe('player registration', () => {
     expect((await register(call, { name: 'X', fed: '12' })).status).toBe(400);
     expect((await register(call, { name: 'a' })).status).toBe(409); // already a player
     expect((await register(call, { name: 'Bob' })).status).toBe(201);
-    expect((await register(call, { name: ' bob ' })).status).toBe(409);
+    expect((await register(call, { name: ' bob ' })).status).toBe(201); // pending names are not revealed
+    expect((await (await pending(call)).json()).registrations).toHaveLength(1);
   });
 
   it('stops at 100 pending registrations', async () => {

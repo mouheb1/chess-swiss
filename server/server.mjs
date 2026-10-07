@@ -255,8 +255,9 @@ export async function createApp({ distDir, dataDir, pin }) {
       const reg = cleanRegistration(body);
       if (!reg) return send(res, 400, { error: 'bad-shape' });
       const key = normName(reg.name);
-      const taken = [...registrations, ...state.tournament.players].some((p) => normName(p.name) === key);
-      if (taken) return send(res, 409, { error: 'duplicate' });
+      if (state.tournament.players.some((p) => normName(p.name) === key)) return send(res, 409, { error: 'duplicate' });
+      // Same answer as a fresh sign-up, so the form can't be used to probe who is waiting.
+      if (registrations.some((r) => normName(r.name) === key)) return send(res, 201, { ok: true });
       if (registrations.length >= MAX_PENDING) return send(res, 429, { error: 'full' });
       registrations.push({ id: randomUUID(), ...reg, createdAt: new Date().toISOString() });
       await saveRegistrations();

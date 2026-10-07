@@ -177,7 +177,9 @@ async function fetchRegistrations() {
   if (!pin || useTournament.getState().mode !== 'arbiter') return;
   const res = await fetch('/api/registrations', { headers: { 'x-arbiter-pin': pin }, cache: 'no-store' }).catch(() => null);
   // A PIN changed on the server must not keep failing every poll and lock the real arbiter out.
-  if (res && (res.status === 401 || res.status === 423 || res.status === 503)) {
+  // 423 (someone else tripped the lock) is left alone: logging out here would let anyone
+  // kick the arbiter out just by guessing wrong PINs.
+  if (res && (res.status === 401 || res.status === 503)) {
     await logout();
     useSync.setState({ notice: 'Le code arbitre a été refusé. Reconnectez-vous.' });
     return;
